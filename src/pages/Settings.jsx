@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { User, Bell, Shield, Palette, Upload, Download, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -22,7 +22,8 @@ const Settings = () => {
   const { user, updateProfileContext } = useAuth();
   const navigate = useNavigate();
   const { theme, accentColor, fontSize, setTheme, setAccentColor, setFontSize } = useTheme();
-  const [activeTab, setActiveTab] = useState('profile');
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState(location.state?.tab || 'profile');
   const fileInputRef = useRef(null);
 
   const tabs = [
@@ -33,6 +34,13 @@ const Settings = () => {
   ];
 
   // ---------- Perfil ----------
+  // Handle state change when navigating to settings with a specific tab
+  useEffect(() => {
+    if (location.state?.tab) {
+      setActiveTab(location.state.tab);
+    }
+  }, [location.state]);
+
   const [profile, setProfile] = useState({ full_name: '', role: '', phone: '', avatar_url: '' });
   const [savingProfile, setSavingProfile] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Search, Bell, Menu } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import styles from './Header.module.css';
@@ -21,6 +21,7 @@ const formatRelativeTime = (isoDate) => {
 
 const Header = ({ toggleSidebar }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, profile } = useAuth();
   
   // Format title based on path
@@ -33,12 +34,17 @@ const Header = ({ toggleSidebar }) => {
   };
 
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const notifRef = useRef(null);
+  const profileRef = useRef(null);
   
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (notifRef.current && !notifRef.current.contains(event.target)) {
         setIsNotifOpen(false);
+      }
+      if (profileRef.current && !profileRef.current.contains(event.target)) {
+        setIsProfileOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -157,13 +163,56 @@ const Header = ({ toggleSidebar }) => {
           )}
         </div>
 
-        <button className={styles.profileButton}>
-          <img 
-            src={profile?.avatar_url || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=f43f5e,8b5cf6"} 
-            alt="User profile" 
-            className={styles.avatar}
-          />
-        </button>
+        <div ref={profileRef} style={{ position: 'relative' }}>
+          <button className={styles.profileButton} onClick={() => setIsProfileOpen(!isProfileOpen)}>
+            <img 
+              src={profile?.avatar_url || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=f43f5e,8b5cf6"} 
+              alt="User profile" 
+              className={styles.avatar}
+            />
+          </button>
+
+          {isProfileOpen && (
+            <div className={styles.profileDropdown} style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--border-radius-lg)', boxShadow: 'var(--shadow-md)', width: '220px', zIndex: 50, overflow: 'hidden' }}>
+              <div style={{ padding: '16px', borderBottom: '1px solid var(--border-color)' }}>
+                <p style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {profile?.full_name || 'Usuário'}
+                </p>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '4px 0 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {user?.email}
+                </p>
+              </div>
+              <div style={{ padding: '8px 0' }}>
+                <button 
+                  onClick={() => { setIsProfileOpen(false); navigate('/settings'); }}
+                  style={{ width: '100%', padding: '10px 16px', textAlign: 'left', background: 'none', border: 'none', fontSize: '0.9rem', color: 'var(--text-primary)', cursor: 'pointer' }}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-app)'}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  Configurações
+                </button>
+                <button 
+                  onClick={() => { setIsProfileOpen(false); navigate('/settings', { state: { tab: 'appearance' } }); }}
+                  style={{ width: '100%', padding: '10px 16px', textAlign: 'left', background: 'none', border: 'none', fontSize: '0.9rem', color: 'var(--text-primary)', cursor: 'pointer' }}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-app)'}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  Aparência
+                </button>
+              </div>
+              <div style={{ borderTop: '1px solid var(--border-color)', padding: '8px 0' }}>
+                <button 
+                  onClick={async () => { setIsProfileOpen(false); await supabase.auth.signOut(); navigate('/login'); }}
+                  style={{ width: '100%', padding: '10px 16px', textAlign: 'left', background: 'none', border: 'none', fontSize: '0.9rem', color: 'var(--status-danger)', cursor: 'pointer', fontWeight: 500 }}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--status-danger-bg)'}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  Sair
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );
