@@ -354,3 +354,50 @@
   gap: var(--spacing-3);
   margin-top: var(--spacing-2);
 }
+
+@media (max-width: 768px) {
+  .boardHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-4);
+  }
+
+  .boardControls {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .button {
+    min-height: 44px;
+    justify-content: center;
+  }
+  
+  .boardStats {
+    font-size: 1.1rem;
+  }
+
+  .columnsWrapper {
+    gap: var(--spacing-4);
+    scroll-snap-type: x mandatory;
+    scroll-padding: var(--spacing-4);
+    padding-bottom: var(--spacing-4);
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .column {
+    min-width: 85vw;
+    width: 85vw;
+    scroll-snap-align: center;
+  }
+
+  .modal {
+    max-width: 100%;
+    height: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .formInput {
+    min-height: 44px;
+  }
+}

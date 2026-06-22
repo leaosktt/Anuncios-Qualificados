@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, Bell } from 'lucide-react';
+import { Search, Bell, Menu } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
@@ -19,7 +19,7 @@ const formatRelativeTime = (isoDate) => {
   return date.toLocaleDateString('pt-BR');
 };
 
-const Header = () => {
+const Header = ({ toggleSidebar }) => {
   const location = useLocation();
   const { user, profile } = useAuth();
   
@@ -99,6 +99,9 @@ const Header = () => {
   return (
     <header className={styles.header}>
       <div className={styles.titleContainer}>
+        <button className={styles.menuBtn} onClick={toggleSidebar}>
+          <Menu size={24} />
+        </button>
         <h1 className={styles.title}>{getTitle()}</h1>
       </div>
 

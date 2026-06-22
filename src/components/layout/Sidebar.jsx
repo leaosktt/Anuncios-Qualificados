@@ -1,10 +1,10 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, KanbanSquare, CheckSquare, FolderKanban, Settings, Users, LogOut, List } from 'lucide-react';
+import { LayoutDashboard, KanbanSquare, CheckSquare, FolderKanban, Settings, Users, LogOut, List, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import styles from './Sidebar.module.css';
 
-const Sidebar = () => {
+const Sidebar = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
   
   const handleLogout = async () => {
@@ -21,12 +21,20 @@ const Sidebar = () => {
   ];
 
   return (
-    <aside className={styles.sidebar}>
-      <div className={styles.logo}>
-        <div className={styles.logoIcon}>
-          <img src="/logo.png" alt="AQ Logo" style={{ width: '60px', height: '60px', objectFit: 'contain' }} />
+    <>
+      <div 
+        className={`${styles.sidebarOverlay} ${isOpen ? styles.open : ''}`} 
+        onClick={onClose}
+      />
+      <aside className={`${styles.sidebar} ${isOpen ? styles.open : ''}`}>
+        <div className={styles.logo}>
+          <div className={styles.logoIcon}>
+            <img src="/logo.png" alt="AQ Logo" style={{ width: '60px', height: '60px', objectFit: 'contain' }} />
+          </div>
+          <button className={styles.closeBtn} onClick={onClose}>
+            <X size={24} />
+          </button>
         </div>
-      </div>
 
       <nav className={styles.nav}>
         <div className={styles.navSection}>WORKSPACE</div>
@@ -62,7 +70,8 @@ const Sidebar = () => {
           <span>Sair</span>
         </button>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 };
 

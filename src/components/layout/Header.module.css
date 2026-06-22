@@ -174,3 +174,35 @@
   margin-right: 12px;
   margin-top: 6px;
 }
+
+.menuBtn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: var(--spacing-2);
+  margin-right: var(--spacing-2);
+}
+
+@media (max-width: 768px) {
+  .menuBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+  }
+  
+  .searchContainer {
+    display: none;
+  }
+  
+  .header {
+    padding: 0 var(--spacing-4);
+  }
+
+  .title {
+    font-size: 1rem;
+  }
+}
