@@ -19,7 +19,7 @@ import Column from './Column';
 import LeadCard from './LeadCard';
 import styles from './Kanban.module.css';
 
-const Board = ({ columns, leads, setLeads, loading }) => {
+const Board = ({ columns, leads, setLeads, loading, onEditLead, onUpdateDate, onEditNotes }) => {
   const [activeId, setActiveId] = useState(null);
 
   const sensors = useSensors(
@@ -173,6 +173,9 @@ const Board = ({ columns, leads, setLeads, loading }) => {
             onMoveLead={handleMoveLead}
             isFirstColumn={index === 0}
             isLastColumn={index === columns.length - 1}
+            onEditLead={onEditLead}
+            onUpdateDate={onUpdateDate}
+            onEditNotes={onEditNotes}
           />
         ))}
 

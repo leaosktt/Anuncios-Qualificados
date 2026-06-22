@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Filter, Plus } from 'lucide-react';
 import Board from '../components/kanban/Board';
 import LeadModal from '../components/kanban/LeadModal';
+import NotesModal from '../components/kanban/NotesModal';
 import styles from '../components/kanban/Kanban.module.css';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
@@ -29,6 +30,8 @@ const Leads = () => {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [targetColumnId, setTargetColumnId] = useState(columnsConfig[0].id);
+  const [editingLead, setEditingLead] = useState(null);
+  const [notesLead, setNotesLead] = useState(null);
 
   useEffect(() => {
     if (user) {
@@ -50,15 +53,19 @@ const Leads = () => {
 
   const openModal = (columnId = columnsConfig[0].id) => {
     setTargetColumnId(columnId);
+    setEditingLead(null);
     setIsModalOpen(true);
   };
 
-  const handleAddLead = async (leadData) => {
+  const handleEditLead = (lead) => {
+    setEditingLead(lead);
+    setIsModalOpen(true);
+  };
+
+  const handleSaveLead = async (leadData) => {
     if (!user) return;
     
-    const newColor = AVATAR_GRADIENTS[Math.floor(Math.random() * AVATAR_GRADIENTS.length)];
-    const leadToInsert = {
-      user_id: user.id,
+    const leadPayload = {
       name: leadData.name,
       company: leadData.company,
       contact: leadData.contact,
@@ -67,20 +74,60 @@ const Leads = () => {
       priority: leadData.priority,
       column_id: leadData.columnId,
       tags: leadData.tags,
-      color: newColor,
     };
 
     try {
-      const { data, error } = await supabase.from('leads').insert([leadToInsert]).select();
+      if (editingLead) {
+        // Update existing
+        const { data, error } = await supabase
+          .from('leads')
+          .update(leadPayload)
+          .eq('id', editingLead.id)
+          .select();
+          
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          setLeads((prev) => prev.map((l) => l.id === editingLead.id ? data[0] : l));
+        }
+      } else {
+        // Insert new
+        const newColor = AVATAR_GRADIENTS[Math.floor(Math.random() * AVATAR_GRADIENTS.length)];
+        const leadToInsert = {
+          ...leadPayload,
+          user_id: user.id,
+          color: newColor,
+        };
+        const { data, error } = await supabase.from('leads').insert([leadToInsert]).select();
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          setLeads((prev) => [data[0], ...prev]);
+        }
+      }
+      setIsModalOpen(false);
+      setEditingLead(null);
+    } catch (error) {
+      console.error("Erro ao salvar lead:", error);
+      alert("Erro ao salvar lead. Verifique o console.");
+    }
+  };
+
+  const handleUpdateField = async (leadId, fieldName, value) => {
+    try {
+      const { data, error } = await supabase
+        .from('leads')
+        .update({ [fieldName]: value })
+        .eq('id', leadId)
+        .select();
+        
       if (error) throw error;
       
       if (data && data.length > 0) {
-        setLeads((prev) => [data[0], ...prev]);
+        setLeads((prev) => prev.map((l) => l.id === leadId ? data[0] : l));
       }
-      setIsModalOpen(false);
     } catch (error) {
-      console.error("Erro ao inserir lead:", error);
-      alert("Erro ao adicionar lead. Verifique o console.");
+      console.error(`Erro ao atualizar ${fieldName}:`, error);
     }
   };
 
@@ -106,14 +153,34 @@ const Leads = () => {
         </div>
       </div>
 
-      <Board columns={columnsConfig} leads={leads} setLeads={setLeads} loading={loading} />
+      <Board 
+        columns={columnsConfig} 
+        leads={leads} 
+        setLeads={setLeads} 
+        loading={loading} 
+        onEditLead={handleEditLead}
+        onUpdateDate={(id, date) => handleUpdateField(id, 'date', date)}
+        onEditNotes={(lead) => setNotesLead(lead)}
+      />
 
       {isModalOpen && (
         <LeadModal
           columns={columnsConfig}
           defaultColumnId={targetColumnId}
-          onClose={() => setIsModalOpen(false)}
-          onSubmit={handleAddLead}
+          onClose={() => { setIsModalOpen(false); setEditingLead(null); }}
+          onSubmit={handleSaveLead}
+          lead={editingLead}
+        />
+      )}
+
+      {notesLead && (
+        <NotesModal
+          lead={notesLead}
+          onClose={() => setNotesLead(null)}
+          onSave={(id, text) => {
+            handleUpdateField(id, 'observations', text);
+            setNotesLead(null);
+          }}
         />
       )}
     </div>

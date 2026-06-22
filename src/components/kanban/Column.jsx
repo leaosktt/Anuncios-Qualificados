@@ -5,7 +5,7 @@ import { MoreHorizontal, Plus } from 'lucide-react';
 import LeadCard from './LeadCard';
 import styles from './Kanban.module.css';
 
-const Column = ({ column, leads, onAddCard, onDeleteLead, onMoveLead, isFirstColumn, isLastColumn }) => {
+const Column = ({ column, leads, onAddCard, onDeleteLead, onMoveLead, isFirstColumn, isLastColumn, onEditLead, onUpdateDate, onEditNotes }) => {
   const leadsIds = useMemo(() => leads.map((l) => l.id), [leads]);
 
   const { setNodeRef, isOver } = useDroppable({
@@ -42,6 +42,9 @@ const Column = ({ column, leads, onAddCard, onDeleteLead, onMoveLead, isFirstCol
               showMovePrev={!isFirstColumn}
               showMoveNext={!isLastColumn}
               columnTitle={column.title}
+              onEdit={onEditLead}
+              onUpdateDate={onUpdateDate}
+              onEditNotes={onEditNotes}
             />
           ))}
         </SortableContext>

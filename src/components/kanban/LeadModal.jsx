@@ -2,15 +2,15 @@ import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import styles from './Kanban.module.css';
 
-const LeadModal = ({ columns, defaultColumnId, onClose, onSubmit }) => {
-  const [name, setName] = useState('');
-  const [company, setCompany] = useState('');
-  const [contact, setContact] = useState('');
-  const [date, setDate] = useState('');
-  const [priority, setPriority] = useState('medium');
-  const [columnId, setColumnId] = useState(defaultColumnId);
-  const [tags, setTags] = useState('');
-  const [estimatedValue, setEstimatedValue] = useState('');
+const LeadModal = ({ columns, defaultColumnId, onClose, onSubmit, lead }) => {
+  const [name, setName] = useState(lead?.name || '');
+  const [company, setCompany] = useState(lead?.company || '');
+  const [contact, setContact] = useState(lead?.contact || '');
+  const [date, setDate] = useState(lead?.date || '');
+  const [priority, setPriority] = useState(lead?.priority || 'medium');
+  const [columnId, setColumnId] = useState(lead?.column_id || defaultColumnId);
+  const [tags, setTags] = useState(lead?.tags?.join(', ') || '');
+  const [estimatedValue, setEstimatedValue] = useState(lead?.estimated_value || '');
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -32,7 +32,7 @@ const LeadModal = ({ columns, defaultColumnId, onClose, onSubmit }) => {
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalHeader}>
-          <h3 className={styles.modalTitle}>Novo Lead</h3>
+          <h3 className={styles.modalTitle}>{lead ? 'Editar Lead' : 'Novo Lead'}</h3>
           <button type="button" className={styles.modalClose} onClick={onClose}>
             <X size={18} />
           </button>
@@ -140,7 +140,7 @@ const LeadModal = ({ columns, defaultColumnId, onClose, onSubmit }) => {
               Cancelar
             </button>
             <button type="submit" className={`${styles.button} ${styles.buttonPrimary}`}>
-              Criar lead
+              {lead ? 'Salvar alterações' : 'Criar lead'}
             </button>
           </div>
         </form>

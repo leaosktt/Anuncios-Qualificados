@@ -4,7 +4,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Mail, Calendar, MessageSquare, CheckCircle2, MoreHorizontal, Trash2, ArrowLeft, ArrowRight } from 'lucide-react';
 import styles from './Kanban.module.css';
 
-const LeadCard = ({ lead, isOverlay, onDelete, onMove, showMovePrev, showMoveNext, columnTitle }) => {
+const LeadCard = ({ lead, isOverlay, onDelete, onMove, showMovePrev, showMoveNext, columnTitle, onEdit, onUpdateDate, onEditNotes }) => {
   const [showMenu, setShowMenu] = useState(false);
   const {
     setNodeRef,
@@ -72,6 +72,21 @@ const LeadCard = ({ lead, isOverlay, onDelete, onMove, showMovePrev, showMoveNex
               >
                 <Trash2 size={14} /> Excluir
               </button>
+              {onEdit && (
+                <button
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowMenu(false);
+                    onEdit(lead);
+                  }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px', background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', fontSize: '0.85rem', borderRadius: '4px', textAlign: 'left' }}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-app)'}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  <Calendar size={14} /> Editar
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -93,13 +108,37 @@ const LeadCard = ({ lead, isOverlay, onDelete, onMove, showMovePrev, showMoveNex
         </div>
         
         <div className={styles.cardMeta}>
-          <div className={styles.metaItem}>
+          <div className={styles.metaItem} style={{ position: 'relative', cursor: 'pointer' }}>
             <Calendar size={12} />
-            <span>{lead.date}</span>
+            <span>{lead.date || 'Sem data'}</span>
+            {onUpdateDate && (
+              <input
+                type="date"
+                value={lead.date || ''}
+                onChange={(e) => onUpdateDate(lead.id, e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  opacity: 0,
+                  cursor: 'pointer'
+                }}
+              />
+            )}
           </div>
-          <div className={styles.metaItem}>
+          <div 
+            className={styles.metaItem} 
+            style={{ cursor: 'pointer' }}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onEditNotes) onEditNotes(lead);
+            }}
+          >
             <MessageSquare size={12} />
-            <span>{lead.comments}</span>
+            <span>{lead.observations ? '1' : lead.comments || '0'}</span>
           </div>
         </div>
       </div>
