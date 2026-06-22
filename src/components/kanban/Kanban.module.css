@@ -1,0 +1,356 @@
+.boardContainer {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 120px); /* 100vh - Header(72px) - padding */
+}
+
+.boardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-6);
+}
+
+.boardStats {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.boardControls {
+  display: flex;
+  gap: var(--spacing-3);
+  align-items: center;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: 8px 16px;
+  border-radius: var(--border-radius-md);
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all var(--transition-fast);
+}
+
+.buttonOutline {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.buttonOutline:hover {
+  background-color: var(--bg-app);
+}
+
+.buttonPrimary {
+  background-color: var(--accent-primary);
+  color: white;
+}
+
+.buttonPrimary:hover {
+  background-color: var(--accent-hover);
+}
+
+.columnsWrapper {
+  display: flex;
+  gap: var(--spacing-6);
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: var(--spacing-2);
+}
+
+/* Column Styles */
+.column {
+  min-width: 320px;
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  background-color: transparent;
+  border-radius: var(--border-radius-lg);
+  height: 100%;
+}
+
+.columnHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-4);
+  padding: 0 var(--spacing-2);
+}
+
+.columnTitle {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.columnCount {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.columnActions {
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.columnContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  overflow-y: auto;
+  min-height: 150px;
+  padding: var(--spacing-2);
+  border-radius: var(--border-radius-md);
+  transition: background-color var(--transition-fast);
+}
+
+.columnContent.isDraggingOver {
+  background-color: rgba(99, 102, 241, 0.05);
+  border: 2px dashed var(--accent-primary);
+}
+
+.addCardBtn {
+  margin-top: var(--spacing-3);
+  width: 100%;
+  padding: 10px;
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 0.9rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--spacing-2);
+  transition: all var(--transition-fast);
+}
+
+.addCardBtn:hover {
+  background-color: var(--bg-app);
+  border-color: var(--text-muted);
+}
+
+/* Card Styles */
+.card {
+  background-color: var(--bg-card);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-4);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+  cursor: grab;
+  position: relative;
+  transition: box-shadow var(--transition-fast);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.card.isDragging {
+  opacity: 0.5;
+  box-shadow: var(--shadow-drag);
+  cursor: grabbing;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-2);
+}
+
+.cardTitle {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.cardDescription {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.cardIcon {
+  color: var(--text-muted);
+}
+
+.cardTags {
+  display: flex;
+  gap: var(--spacing-2);
+  margin-top: var(--spacing-4);
+  flex-wrap: wrap;
+}
+
+.tag {
+  padding: 4px 8px;
+  border-radius: var(--border-radius-sm);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.tag.high {
+  background-color: var(--status-danger-bg);
+  color: var(--status-danger);
+}
+
+.tag.medium {
+  background-color: var(--status-warning-bg);
+  color: var(--status-warning);
+}
+
+.tag.low {
+  background-color: var(--status-success-bg);
+  color: var(--status-success);
+}
+
+.cardFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--spacing-4);
+  padding-top: var(--spacing-3);
+  border-top: 1px solid var(--border-color);
+}
+
+.cardUser {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.cardAvatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cardContact {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.cardMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.metaItem {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Modal Styles */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--spacing-4);
+}
+
+.modal {
+  background-color: var(--bg-card);
+  border-radius: var(--border-radius-lg);
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-md);
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-5) var(--spacing-6);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.modalTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.modalClose {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: var(--border-radius-sm);
+  color: var(--text-muted);
+  transition: all var(--transition-fast);
+}
+
+.modalClose:hover {
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+}
+
+.modalForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  padding: var(--spacing-6);
+}
+
+.formRow {
+  display: flex;
+  gap: var(--spacing-4);
+}
+
+.formRow .formLabel {
+  flex: 1;
+}
+
+.formLabel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.formInput {
+  padding: 10px 12px;
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--border-color);
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: var(--text-primary);
+  background-color: var(--bg-app);
+  transition: border-color var(--transition-fast);
+}
+
+.formInput:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-3);
+  margin-top: var(--spacing-2);
+}
