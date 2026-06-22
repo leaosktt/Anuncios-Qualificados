@@ -67,7 +67,7 @@ const Dashboard = () => {
   const projectedRevenue = filteredLeads.reduce((acc, lead) => acc + (Number(lead.estimated_value) || 0), 0);
 
   const formatCurrency = (val) => {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(val);
+    return `R$ ${Number(val).toLocaleString('pt-BR')}`;
   };
 
   const stats = [
