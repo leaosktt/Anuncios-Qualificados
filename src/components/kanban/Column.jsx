@@ -41,6 +41,7 @@ const Column = ({ column, leads, onAddCard, onDeleteLead, onMoveLead, isFirstCol
               onMove={onMoveLead}
               showMovePrev={!isFirstColumn}
               showMoveNext={!isLastColumn}
+              columnTitle={column.title}
             />
           ))}
         </SortableContext>
