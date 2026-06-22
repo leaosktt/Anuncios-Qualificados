@@ -355,6 +355,10 @@
   margin-top: var(--spacing-2);
 }
 
+.moveArrowLeft, .moveArrowRight {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .boardHeader {
     flex-direction: column;
@@ -399,5 +403,28 @@
 
   .formInput {
     min-height: 44px;
+  }
+
+  .moveArrowLeft, .moveArrowRight {
+    display: flex;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    z-index: 10;
+  }
+  .moveArrowLeft {
+    left: 4px;
+  }
+  .moveArrowRight {
+    right: 4px;
   }
 }

@@ -127,6 +127,28 @@ const Board = ({ columns, leads, setLeads, loading }) => {
     }
   };
 
+  const handleMoveLead = async (leadId, direction) => {
+    const lead = leads.find(l => l.id === leadId);
+    if (!lead) return;
+    const currentColumnIndex = columns.findIndex(c => c.id === lead.column_id);
+    let targetColumnIndex = currentColumnIndex;
+    if (direction === 'prev' && currentColumnIndex > 0) {
+      targetColumnIndex = currentColumnIndex - 1;
+    } else if (direction === 'next' && currentColumnIndex < columns.length - 1) {
+      targetColumnIndex = currentColumnIndex + 1;
+    }
+
+    if (targetColumnIndex !== currentColumnIndex) {
+      const targetColumnId = columns[targetColumnIndex].id;
+      setLeads(prev => prev.map(l => l.id === leadId ? { ...l, column_id: targetColumnId } : l));
+      try {
+        await supabase.from('leads').update({ column_id: targetColumnId }).eq('id', leadId);
+      } catch (error) {
+        console.error("Erro ao mover lead:", error);
+      }
+    }
+  };
+
   const activeLead = activeId ? leads.find((l) => l.id === activeId) : null;
 
   if (loading) {
@@ -142,12 +164,15 @@ const Board = ({ columns, leads, setLeads, loading }) => {
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
-        {columns.map((col) => (
+        {columns.map((col, index) => (
           <Column 
             key={col.id} 
             column={col} 
             leads={leads.filter((lead) => lead.column_id === col.id)}
             onDeleteLead={handleDeleteLead}
+            onMoveLead={handleMoveLead}
+            isFirstColumn={index === 0}
+            isLastColumn={index === columns.length - 1}
           />
         ))}
 

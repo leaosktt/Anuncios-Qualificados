@@ -60,20 +60,28 @@ const Dashboard = () => {
 
   const filteredLeads = getFilteredLeads();
 
+  const parseValue = (val) => {
+    if (!val) return 0;
+    if (typeof val === 'number') return val;
+    const cleanStr = String(val).replace(/\./g, '').replace(',', '.');
+    const parsed = Number(cleanStr);
+    return isNaN(parsed) ? 0 : parsed;
+  };
+
   // Cálculo das métricas reais
   const totalLeads = filteredLeads.length;
   const closedLeads = filteredLeads.filter(l => l.column_id === 'col-6').length;
   const conversionRate = totalLeads === 0 ? 0 : ((closedLeads / totalLeads) * 100).toFixed(1);
-  const projectedRevenue = filteredLeads.reduce((acc, lead) => acc + (Number(lead.estimated_value) || 0), 0);
+  const projectedRevenue = filteredLeads.reduce((acc, lead) => acc + parseValue(lead.estimated_value), 0);
 
-  const formatCurrency = (val) => {
-    return `R$ ${Number(val).toLocaleString('pt-BR')}`;
+  const formatNumber = (val) => {
+    return Number(val).toLocaleString('pt-BR');
   };
 
   const stats = [
-    { title: 'Total de Leads', value: totalLeads.toString(), change: '-', isPositive: true, icon: <Users size={24} /> },
-    { title: 'Taxa de Conversão', value: `${conversionRate}%`, change: '-', isPositive: true, icon: <Activity size={24} /> },
-    { title: 'Receita Projetada', value: formatCurrency(projectedRevenue), change: '-', isPositive: true, icon: <DollarSign size={24} /> },
+    { title: 'Total de Leads', value: formatNumber(totalLeads), change: '-', isPositive: true, icon: <Users size={24} /> },
+    { title: 'Taxa de Conversão', value: `${formatNumber(conversionRate)}%`, change: '-', isPositive: true, icon: <Activity size={24} /> },
+    { title: 'Receita Projetada', value: `R$ ${formatNumber(projectedRevenue)}`, change: '-', isPositive: true, icon: <DollarSign size={24} /> },
   ];
 
   // Cálculo dos dados reais pro Gráfico

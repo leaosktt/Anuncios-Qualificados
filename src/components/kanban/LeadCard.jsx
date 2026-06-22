@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Mail, Calendar, MessageSquare, CheckCircle2, MoreHorizontal, Trash2 } from 'lucide-react';
+import { Mail, Calendar, MessageSquare, CheckCircle2, MoreHorizontal, Trash2, ArrowLeft, ArrowRight } from 'lucide-react';
 import styles from './Kanban.module.css';
 
-const LeadCard = ({ lead, isOverlay, onDelete }) => {
+const LeadCard = ({ lead, isOverlay, onDelete, onMove, showMovePrev, showMoveNext }) => {
   const [showMenu, setShowMenu] = useState(false);
   const {
     setNodeRef,
@@ -108,6 +108,27 @@ const LeadCard = ({ lead, isOverlay, onDelete }) => {
         <div style={{ position: 'absolute', top: 10, right: 10, color: 'var(--status-success)' }}>
           <CheckCircle2 size={16} />
         </div>
+      )}
+
+      {onMove && !isOverlay && (
+        <>
+          {showMovePrev && (
+            <button 
+              className={styles.moveArrowLeft}
+              onClick={(e) => { e.stopPropagation(); onMove(lead.id, 'prev'); }}
+            >
+              <ArrowLeft size={18} color="#3B82F6" />
+            </button>
+          )}
+          {showMoveNext && (
+            <button 
+              className={styles.moveArrowRight}
+              onClick={(e) => { e.stopPropagation(); onMove(lead.id, 'next'); }}
+            >
+              <ArrowRight size={18} color="#3B82F6" />
+            </button>
+          )}
+        </>
       )}
     </div>
   );
