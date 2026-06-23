@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Mail, Lock, AlertCircle } from 'lucide-react';
+import { Mail, Lock, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
@@ -9,6 +9,7 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
   
   const navigate = useNavigate();
 
@@ -16,6 +17,7 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setSuccess(null);
 
     try {
       if (isLogin) {
@@ -25,8 +27,11 @@ const Login = () => {
       } else {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        setError('Verifique seu e-mail para confirmar a conta antes de fazer login.');
-        setIsLogin(true);
+        setSuccess('Conta criada com sucesso! Redirecionando...');
+        setTimeout(() => {
+          setSuccess(null);
+          setIsLogin(true);
+        }, 2000);
       }
     } catch (err) {
       setError(err.message || 'Ocorreu um erro durante a autenticação.');
@@ -56,6 +61,12 @@ const Login = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', backgroundColor: 'var(--status-danger-bg)', color: 'var(--status-danger)', borderRadius: '8px', marginBottom: '1.5rem', fontSize: '0.85rem', fontWeight: 500 }}>
               <AlertCircle size={16} />
               {error}
+            </div>
+          )}
+          {success && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', backgroundColor: 'var(--status-success-bg, #d1fae5)', color: 'var(--status-success, #059669)', borderRadius: '8px', marginBottom: '1.5rem', fontSize: '0.85rem', fontWeight: 500 }}>
+              <CheckCircle2 size={16} />
+              {success}
             </div>
           )}
 
@@ -102,7 +113,8 @@ const Login = () => {
           <div style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
             {isLogin ? "Não tem uma conta? " : "Já tem uma conta? "}
             <button 
-              onClick={() => setIsLogin(!isLogin)} 
+              onClick={() => { setIsLogin(!isLogin); setError(null); setSuccess(null); }} 
+              type="button"
               style={{ color: 'var(--accent-primary)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
             >
               {isLogin ? 'Cadastre-se' : 'Faça Login'}
