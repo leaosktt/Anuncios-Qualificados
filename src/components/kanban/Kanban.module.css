@@ -394,6 +394,10 @@
     scroll-snap-align: center;
   }
 
+  .card {
+    touch-action: pan-y !important;
+  }
+
   .modal {
     max-width: 100%;
     height: 100%;
