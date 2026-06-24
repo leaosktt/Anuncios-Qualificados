@@ -9,6 +9,7 @@ import Tasks from './pages/Tasks';
 import Clients from './pages/Clients';
 import Projects from './pages/Projects';
 import Settings from './pages/Settings';
+import Integrations from './pages/Integrations';
 import Login from './pages/Login';
 
 const ProtectedRoute = ({ children }) => {
@@ -41,6 +42,7 @@ function App() {
               <Route path="tasks" element={<Tasks />} />
               <Route path="clients" element={<Clients />} />
               <Route path="projects" element={<Projects />} />
+              <Route path="integrations" element={<Integrations />} />
               <Route path="settings" element={<Settings />} />
             </Route>
           </Routes>

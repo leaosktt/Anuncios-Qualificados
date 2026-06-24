@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, KanbanSquare, CheckSquare, FolderKanban, Settings, Users, LogOut, List, X } from 'lucide-react';
+import { LayoutDashboard, KanbanSquare, CheckSquare, FolderKanban, Settings, Users, LogOut, List, X, Link as LinkIcon } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import styles from './Sidebar.module.css';
 
@@ -18,6 +18,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { name: 'Tarefas', path: '/tasks', icon: <CheckSquare size={20} /> },
     { name: 'Clientes', path: '/clients', icon: <Users size={20} /> },
     { name: 'Projetos', path: '/projects', icon: <FolderKanban size={20} /> },
+    { name: 'Integrações', path: '/integrations', icon: <LinkIcon size={20} /> },
   ];
 
   return (
