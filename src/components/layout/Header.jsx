@@ -102,7 +102,65 @@ const Header = ({ toggleSidebar }) => {
     }
   };
 
+  const [showTaskToast, setShowTaskToast] = useState(false);
+  const [todayTasksCount, setTodayTasksCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchTodayTasks = async () => {
+      const todayString = new Date().toISOString().split('T')[0];
+      try {
+        const { count, error } = await supabase
+          .from('tasks')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('done', false)
+          .eq('date', todayString);
+        
+        if (!error && count > 0) {
+          setTodayTasksCount(count);
+          setShowTaskToast(true);
+          setTimeout(() => setShowTaskToast(false), 8000);
+        }
+      } catch (err) {
+        console.error('Erro ao buscar tarefas de hoje:', err);
+      }
+    };
+    fetchTodayTasks();
+  }, [user]);
+
   return (
+    <>
+      {showTaskToast && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          backgroundColor: 'var(--accent-primary)',
+          color: 'white',
+          padding: '16px 24px',
+          borderRadius: '8px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          cursor: 'pointer',
+          animation: 'slideIn 0.3s ease-out'
+        }} onClick={() => { setShowTaskToast(false); navigate('/tasks?filter=today'); }}>
+          <Bell size={20} />
+          <div style={{ flex: 1 }}>
+            <p style={{ margin: 0, fontWeight: 600 }}>Você tem {todayTasksCount} tarefa{todayTasksCount > 1 ? 's' : ''} vencendo hoje!</p>
+            <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.9 }}>Clique aqui para visualizá-la{todayTasksCount > 1 ? 's' : ''}.</p>
+          </div>
+          <button 
+            onClick={(e) => { e.stopPropagation(); setShowTaskToast(false); }}
+            style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '4px' }}
+          >
+            &times;
+          </button>
+        </div>
+      )}
     <header className={styles.header}>
       <div className={styles.titleContainer}>
         <button className={styles.menuBtn} onClick={toggleSidebar}>
@@ -215,6 +273,7 @@ const Header = ({ toggleSidebar }) => {
         </div>
       </div>
     </header>
+    </>
   );
 };
 
