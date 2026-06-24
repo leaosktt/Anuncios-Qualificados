@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   DndContext, 
   closestCorners, 
@@ -21,6 +21,13 @@ import styles from './Kanban.module.css';
 
 const Board = ({ columns, leads, setLeads, loading, onEditLead, onUpdateDate, onEditNotes }) => {
   const [activeId, setActiveId] = useState(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -28,12 +35,14 @@ const Board = ({ columns, leads, setLeads, loading, onEditLead, onUpdateDate, on
         distance: 5,
       },
     }),
-    useSensor(TouchSensor, {
-      activationConstraint: {
-        delay: 250,
-        tolerance: 5,
-      },
-    }),
+    ...(isMobile ? [] : [
+      useSensor(TouchSensor, {
+        activationConstraint: {
+          delay: 250,
+          tolerance: 5,
+        },
+      })
+    ]),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })

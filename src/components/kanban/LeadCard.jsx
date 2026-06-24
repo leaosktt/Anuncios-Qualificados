@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Mail, Calendar, MessageSquare, CheckCircle2, MoreHorizontal, Trash2, ArrowLeft, ArrowRight } from 'lucide-react';
@@ -6,6 +6,15 @@ import styles from './Kanban.module.css';
 
 const LeadCard = ({ lead, isOverlay, onDelete, onMove, showMovePrev, showMoveNext, columnTitle, onEdit, onUpdateDate, onEditNotes }) => {
   const [showMenu, setShowMenu] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isMoving, setIsMoving] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const {
     setNodeRef,
     attributes,
@@ -40,7 +49,7 @@ const LeadCard = ({ lead, isOverlay, onDelete, onMove, showMovePrev, showMoveNex
       ref={setNodeRef}
       style={style}
       {...attributes}
-      {...listeners}
+      {...(isMobile ? {} : listeners)}
       className={`${styles.card} ${isDragging ? styles.isDragging : ''} ${isOverlay ? styles.isOverlay : ''}`}
     >
       <div className={styles.cardHeader}>
@@ -153,16 +162,28 @@ const LeadCard = ({ lead, isOverlay, onDelete, onMove, showMovePrev, showMoveNex
         <div className={styles.mobileMoveActions}>
           <button 
             className={styles.moveBtn}
-            onClick={(e) => { e.stopPropagation(); onMove(lead.id, 'prev'); }}
-            disabled={!showMovePrev}
+            onClick={(e) => { 
+              e.stopPropagation(); 
+              if (isMoving) return;
+              setIsMoving(true);
+              onMove(lead.id, 'prev');
+              setTimeout(() => setIsMoving(false), 100);
+            }}
+            disabled={!showMovePrev || isMoving}
           >
             <ArrowLeft size={16} />
           </button>
           <span className={styles.moveColumnName}>{columnTitle || "Mover"}</span>
           <button 
             className={styles.moveBtn}
-            onClick={(e) => { e.stopPropagation(); onMove(lead.id, 'next'); }}
-            disabled={!showMoveNext}
+            onClick={(e) => { 
+              e.stopPropagation(); 
+              if (isMoving) return;
+              setIsMoving(true);
+              onMove(lead.id, 'next');
+              setTimeout(() => setIsMoving(false), 100);
+            }}
+            disabled={!showMoveNext || isMoving}
           >
             <ArrowRight size={16} />
           </button>
