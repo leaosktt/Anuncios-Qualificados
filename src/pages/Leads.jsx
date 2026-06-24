@@ -3,6 +3,8 @@ import { Filter, Plus } from 'lucide-react';
 import Board from '../components/kanban/Board';
 import LeadModal from '../components/kanban/LeadModal';
 import NotesModal from '../components/kanban/NotesModal';
+import LeadsListModal from '../components/kanban/LeadsListModal';
+import FilterModal from '../components/kanban/FilterModal';
 import styles from '../components/kanban/Kanban.module.css';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
@@ -32,6 +34,35 @@ const Leads = () => {
   const [targetColumnId, setTargetColumnId] = useState(columnsConfig[0].id);
   const [editingLead, setEditingLead] = useState(null);
   const [notesLead, setNotesLead] = useState(null);
+  
+  const [isListModalOpen, setIsListModalOpen] = useState(false);
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [filters, setFilters] = useState({ priority: '', columnId: '', dateRange: '' });
+
+  const activeFilterCount = Object.values(filters).filter(Boolean).length;
+
+  const filteredLeads = leads.filter((lead) => {
+    if (filters.priority && lead.priority !== filters.priority) return false;
+    if (filters.columnId && lead.column_id !== filters.columnId) return false;
+    
+    if (filters.dateRange) {
+      if (!lead.date) return false;
+      
+      const leadDate = new Date(lead.date);
+      const today = new Date();
+      
+      if (filters.dateRange === 'today') {
+        if (leadDate.toDateString() !== today.toDateString()) return false;
+      } else if (filters.dateRange === 'this_week') {
+        const daysDiff = (today - leadDate) / (1000 * 60 * 60 * 24);
+        if (Math.abs(daysDiff) > 7) return false;
+      } else if (filters.dateRange === 'this_month') {
+        if (leadDate.getMonth() !== today.getMonth() || leadDate.getFullYear() !== today.getFullYear()) return false;
+      }
+    }
+    
+    return true;
+  });
 
   useEffect(() => {
     if (user) {
@@ -141,11 +172,12 @@ const Leads = () => {
         </div>
 
         <div className={styles.boardControls}>
-          <button className={`${styles.button} ${styles.buttonOutline}`}>
+          <button className={`${styles.button} ${styles.buttonOutline}`} onClick={() => setIsListModalOpen(true)}>
             Todos os leads
           </button>
-          <button className={`${styles.button} ${styles.buttonOutline}`}>
+          <button className={`${styles.button} ${styles.buttonOutline}`} onClick={() => setIsFilterModalOpen(true)}>
             <Filter size={16} /> Filtros
+            {activeFilterCount > 0 && <span className={styles.badge}>{activeFilterCount}</span>}
           </button>
           <button className={`${styles.button} ${styles.buttonPrimary}`} onClick={() => openModal()}>
             <Plus size={16} /> Novo lead
@@ -155,7 +187,7 @@ const Leads = () => {
 
       <Board 
         columns={columnsConfig} 
-        leads={leads} 
+        leads={filteredLeads} 
         setLeads={setLeads} 
         loading={loading} 
         onEditLead={handleEditLead}
@@ -180,6 +212,30 @@ const Leads = () => {
           onSave={(id, text) => {
             handleUpdateField(id, 'notes', text);
             setNotesLead(null);
+          }}
+        />
+      )}
+
+      {isListModalOpen && (
+        <LeadsListModal
+          leads={leads}
+          columns={columnsConfig}
+          onClose={() => setIsListModalOpen(false)}
+        />
+      )}
+
+      {isFilterModalOpen && (
+        <FilterModal
+          columns={columnsConfig}
+          currentFilters={filters}
+          onClose={() => setIsFilterModalOpen(false)}
+          onApply={(newFilters) => {
+            setFilters(newFilters);
+            setIsFilterModalOpen(false);
+          }}
+          onClear={() => {
+            setFilters({ priority: '', columnId: '', dateRange: '' });
+            setIsFilterModalOpen(false);
           }}
         />
       )}
