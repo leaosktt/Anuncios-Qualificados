@@ -193,6 +193,7 @@ const Leads = () => {
         onEditLead={handleEditLead}
         onUpdateDate={(id, date) => handleUpdateField(id, 'date', date)}
         onEditNotes={(lead) => setNotesLead(lead)}
+        fetchLeads={fetchLeads}
       />
 
       {isModalOpen && (

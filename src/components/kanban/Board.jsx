@@ -19,7 +19,7 @@ import Column from './Column';
 import LeadCard from './LeadCard';
 import styles from './Kanban.module.css';
 
-const Board = ({ columns, leads, setLeads, loading, onEditLead, onUpdateDate, onEditNotes }) => {
+const Board = ({ columns, leads, setLeads, loading, onEditLead, onUpdateDate, onEditNotes, fetchLeads }) => {
   const [activeId, setActiveId] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
@@ -129,6 +129,9 @@ const Board = ({ columns, leads, setLeads, loading, onEditLead, onUpdateDate, on
       if (targetColumnId && targetColumnId !== movedLead.column_id) {
         try {
           await supabase.from('leads').update({ column_id: targetColumnId }).eq('id', activeId);
+          if (fetchLeads) {
+            await fetchLeads();
+          }
         } catch (error) {
           console.error("Erro ao atualizar coluna no Supabase:", error);
         }
@@ -152,6 +155,9 @@ const Board = ({ columns, leads, setLeads, loading, onEditLead, onUpdateDate, on
       setLeads(prev => prev.map(l => l.id === leadId ? { ...l, column_id: targetColumnId } : l));
       try {
         await supabase.from('leads').update({ column_id: targetColumnId }).eq('id', leadId);
+        if (fetchLeads) {
+          await fetchLeads();
+        }
       } catch (error) {
         console.error("Erro ao mover lead:", error);
       }
