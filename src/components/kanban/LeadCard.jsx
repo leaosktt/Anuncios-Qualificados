@@ -4,7 +4,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Mail, Calendar, MessageSquare, CheckCircle2, MoreHorizontal, Trash2, ArrowLeft, ArrowRight } from 'lucide-react';
 import styles from './Kanban.module.css';
 
-const LeadCard = ({ lead, isOverlay, onDelete, onMove, showMovePrev, showMoveNext, columnTitle, onEdit, onUpdateDate, onEditNotes }) => {
+const LeadCard = ({ lead, isOverlay, onDelete, onMove, showMovePrev, showMoveNext, columnTitle, columnColor, onEdit, onUpdateDate, onEditNotes }) => {
   const [showMenu, setShowMenu] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [isMoving, setIsMoving] = useState(false);
@@ -33,6 +33,7 @@ const LeadCard = ({ lead, isOverlay, onDelete, onMove, showMovePrev, showMoveNex
   const style = {
     transition,
     transform: CSS.Transform.toString(transform),
+    borderLeft: columnColor ? `4px solid ${columnColor}` : undefined,
   };
 
   const getPriorityClass = (priority) => {
@@ -53,7 +54,7 @@ const LeadCard = ({ lead, isOverlay, onDelete, onMove, showMovePrev, showMoveNex
       className={`${styles.card} ${isDragging ? styles.isDragging : ''} ${isOverlay ? styles.isOverlay : ''}`}
     >
       <div className={styles.cardHeader}>
-        <h4 className={styles.cardTitle}>{lead.company || 'Sem empresa'}</h4>
+        <h4 className={styles.cardTitle} style={{ color: columnColor }}>{lead.company || 'Sem empresa'}</h4>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'relative' }}>
           <Mail size={16} className={styles.cardIcon} />
           <button 
@@ -167,7 +168,7 @@ const LeadCard = ({ lead, isOverlay, onDelete, onMove, showMovePrev, showMoveNex
           >
             <ArrowLeft size={16} />
           </button>
-          <span className={styles.moveColumnName}>{columnTitle || "Mover"}</span>
+          <span className={styles.moveColumnName} style={{ color: columnColor }}>{columnTitle || "Mover"}</span>
           <button 
             className={styles.moveBtn}
             onClick={(e) => { 
