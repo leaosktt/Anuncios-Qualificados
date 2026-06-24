@@ -126,9 +126,14 @@ const Board = ({ columns, leads, setLeads, loading, onEditLead, onUpdateDate, on
         });
       }
 
-      if (targetColumnId && targetColumnId !== movedLead.column_id) {
+      if (targetColumnId) {
         try {
-          await supabase.from('leads').update({ column_id: targetColumnId }).eq('id', activeId);
+          const { error } = await supabase.from('leads').update({ column_id: targetColumnId }).eq('id', activeId);
+          if (error) {
+            console.error("Erro no update do supabase:", error);
+          } else {
+            console.log("Update sucesso no supabase, id:", activeId, "novaColuna:", targetColumnId);
+          }
           if (fetchLeads) {
             await fetchLeads();
           }
@@ -154,7 +159,12 @@ const Board = ({ columns, leads, setLeads, loading, onEditLead, onUpdateDate, on
       const targetColumnId = columns[targetColumnIndex].id;
       setLeads(prev => prev.map(l => l.id === leadId ? { ...l, column_id: targetColumnId } : l));
       try {
-        await supabase.from('leads').update({ column_id: targetColumnId }).eq('id', leadId);
+        const { error } = await supabase.from('leads').update({ column_id: targetColumnId }).eq('id', leadId);
+        if (error) {
+          console.error("Erro no update do supabase:", error);
+        } else {
+          console.log("Update sucesso no supabase, id:", leadId, "novaColuna:", targetColumnId);
+        }
         if (fetchLeads) {
           await fetchLeads();
         }

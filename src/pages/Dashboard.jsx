@@ -126,7 +126,7 @@ const Dashboard = () => {
   const totalLeads = filteredLeads.length;
   const closedLeads = filteredLeads.filter(l => l.column_id === 'col-6').length;
   const conversionRate = totalLeads === 0 ? 0 : ((closedLeads / totalLeads) * 100).toFixed(1);
-  const projectedRevenue = filteredLeads.reduce((acc, lead) => acc + parseValue(lead.estimated_value), 0);
+  const projectedRevenue = filteredLeads.filter(l => l.column_id === 'col-6').reduce((acc, lead) => acc + parseValue(lead.estimated_value), 0);
 
   const formatNumber = (val) => {
     return Number(val).toLocaleString('pt-BR');
@@ -135,7 +135,7 @@ const Dashboard = () => {
   const stats = [
     { title: 'Total de Leads', value: formatNumber(totalLeads), change: '-', isPositive: true, icon: <Users size={24} /> },
     { title: 'Taxa de Conversão', value: `${formatNumber(conversionRate)}%`, change: '-', isPositive: true, icon: <Activity size={24} /> },
-    { title: 'Receita Projetada', value: `R$ ${formatNumber(projectedRevenue)}`, change: '-', isPositive: true, icon: <DollarSign size={24} /> },
+    { title: 'Contratos Fechados', value: `R$ ${formatNumber(projectedRevenue)}`, change: '-', isPositive: true, icon: <DollarSign size={24} /> },
   ];
 
   // Cálculo dos dados reais pro Gráfico
