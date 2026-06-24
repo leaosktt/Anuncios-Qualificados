@@ -56,7 +56,16 @@ const LeadCard = ({ lead, isOverlay, onDelete, onMove, showMovePrev, showMoveNex
       <div className={styles.cardHeader}>
         <h4 className={styles.cardTitle} style={{ color: columnColor }}>{lead.company || 'Sem empresa'}</h4>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'relative' }}>
-          <Mail size={16} className={styles.cardIcon} />
+          <div 
+            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-muted)' }}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onEditNotes) onEditNotes(lead);
+            }}
+          >
+            <MessageSquare size={16} className={styles.cardIcon} />
+            {lead.notes && <span style={{ fontSize: '0.7rem', marginLeft: '4px', fontWeight: 'bold', color: 'var(--accent-primary)' }}>•</span>}
+          </div>
           <button 
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
@@ -111,7 +120,7 @@ const LeadCard = ({ lead, isOverlay, onDelete, onMove, showMovePrev, showMoveNex
       </p>
 
       <div className={styles.cardFooter}>
-        <div className={styles.cardMeta} style={{ width: '100%', justifyContent: 'space-between' }}>
+        <div className={styles.cardMeta} style={{ width: '100%', justifyContent: 'flex-start' }}>
           <div className={styles.metaItem} style={{ position: 'relative', cursor: 'pointer' }}>
             <Calendar size={12} />
             <span>{lead.date || 'Sem data'}</span>
@@ -132,17 +141,6 @@ const LeadCard = ({ lead, isOverlay, onDelete, onMove, showMovePrev, showMoveNex
                 }}
               />
             )}
-          </div>
-          <div 
-            className={styles.metaItem} 
-            style={{ cursor: 'pointer' }}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (onEditNotes) onEditNotes(lead);
-            }}
-          >
-            <MessageSquare size={12} />
-            <span>{lead.observations ? '1' : lead.comments || '0'}</span>
           </div>
         </div>
       </div>

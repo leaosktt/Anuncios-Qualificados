@@ -178,7 +178,7 @@ const Leads = () => {
           lead={notesLead}
           onClose={() => setNotesLead(null)}
           onSave={(id, text) => {
-            handleUpdateField(id, 'observations', text);
+            handleUpdateField(id, 'notes', text);
             setNotesLead(null);
           }}
         />

@@ -3,11 +3,11 @@ import { X, Save } from 'lucide-react';
 import styles from './Kanban.module.css';
 
 const NotesModal = ({ lead, onClose, onSave }) => {
-  const [observations, setObservations] = useState(lead?.observations || '');
+  const [notes, setNotes] = useState(lead?.notes || '');
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave(lead.id, observations);
+    onSave(lead.id, notes);
   };
 
   return (
@@ -25,8 +25,8 @@ const NotesModal = ({ lead, onClose, onSave }) => {
             Observações / Anotações
             <textarea
               className={styles.formInput}
-              value={observations}
-              onChange={(e) => setObservations(e.target.value)}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
               placeholder="Digite aqui as observações, links ou detalhes sobre este lead..."
               rows={8}
               autoFocus
