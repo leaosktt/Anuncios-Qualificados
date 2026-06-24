@@ -53,7 +53,7 @@ const LeadCard = ({ lead, isOverlay, onDelete, onMove, showMovePrev, showMoveNex
       className={`${styles.card} ${isDragging ? styles.isDragging : ''} ${isOverlay ? styles.isOverlay : ''}`}
     >
       <div className={styles.cardHeader}>
-        <h4 className={styles.cardTitle}>{lead.name}</h4>
+        <h4 className={styles.cardTitle}>{lead.company || 'Sem empresa'}</h4>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'relative' }}>
           <Mail size={16} className={styles.cardIcon} />
           <button 
@@ -101,22 +101,16 @@ const LeadCard = ({ lead, isOverlay, onDelete, onMove, showMovePrev, showMoveNex
         </div>
       </div>
       
-      <p className={styles.cardDescription}>
-        {lead.company} - {lead.tags.join(', ')}
+      <p className={styles.cardDescription} style={{ marginBottom: '4px' }}>
+        {lead.name} {lead.tags?.length > 0 ? `- ${lead.tags.join(', ')}` : ''}
+      </p>
+
+      <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px' }}>
+        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(lead.estimated_value || 0)}
       </p>
 
       <div className={styles.cardFooter}>
-        <div className={styles.cardUser}>
-          <div 
-            className={styles.cardAvatar}
-            style={{ background: lead.color }}
-          >
-            {/* Using an empty div with gradient background as a placeholder avatar */}
-          </div>
-          <span className={styles.cardContact}>{lead.contact}</span>
-        </div>
-        
-        <div className={styles.cardMeta}>
+        <div className={styles.cardMeta} style={{ width: '100%', justifyContent: 'space-between' }}>
           <div className={styles.metaItem} style={{ position: 'relative', cursor: 'pointer' }}>
             <Calendar size={12} />
             <span>{lead.date || 'Sem data'}</span>
