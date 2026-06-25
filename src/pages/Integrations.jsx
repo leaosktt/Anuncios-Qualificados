@@ -13,23 +13,6 @@ const Integrations = () => {
 
   useEffect(() => {
     checkActiveIntegration();
-    
-    window.fbAsyncInit = function() {
-      window.FB.init({
-        appId: '894171913029097',
-        cookie: true,
-        xfbml: true,
-        version: 'v25.0'
-      });
-    };
-
-    (function(d, s, id) {
-      var js, fjs = d.getElementsByTagName(s)[0];
-      if (d.getElementById(id)) return;
-      js = d.createElement(s); js.id = id;
-      js.src = "https://connect.facebook.net/pt_BR/sdk.js";
-      fjs.parentNode.insertBefore(js, fjs);
-    }(document, 'script', 'facebook-jssdk'));
   }, [user]);
 
   const checkActiveIntegration = async () => {
@@ -52,18 +35,18 @@ const Integrations = () => {
   };
 
   const handleFacebookConnect = () => {
-    console.log("Checando window.FB no clique: ", window.FB);
-    if (window.FB) {
-      window.FB.login((response) => {
-        if (response.authResponse) {
-          fetchUserPages();
-        } else {
-          console.log('Usuário cancelou o login ou não autorizou totalmente.');
-        }
-      }, { scope: 'pages_show_list,leads_retrieval,pages_read_engagement' });
-    } else {
-      alert("SDK do Facebook ainda não foi carregado.");
+    if (!window.FB) {
+      alert('SDK do Facebook ainda carregando, tente novamente em alguns segundos.');
+      return;
     }
+    
+    window.FB.login((response) => {
+      if (response.authResponse) {
+        fetchUserPages();
+      } else {
+        console.log('Usuário cancelou o login ou não autorizou totalmente.');
+      }
+    }, { scope: 'pages_show_list,leads_retrieval,pages_read_engagement' });
   };
 
   const fetchUserPages = () => {
