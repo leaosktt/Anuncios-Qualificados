@@ -64,7 +64,7 @@ const LeadCard = ({ lead, isOverlay, onDelete, onMove, showMovePrev, showMoveNex
             }}
           >
             <MessageSquare size={16} className={styles.cardIcon} />
-            {lead.notes && <span style={{ fontSize: '0.7rem', marginLeft: '4px', fontWeight: 'bold', color: 'var(--accent-primary)' }}>•</span>}
+            {lead.notes && <span style={{ fontSize: '0.7rem', marginLeft: '4px', fontWeight: 'bold', color: '#10b981' }}>•</span>}
           </div>
           <button 
             onPointerDown={(e) => e.stopPropagation()}

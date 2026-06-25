@@ -12,11 +12,10 @@ const Column = ({ column, leads, onAddCard, onDeleteLead, onMoveLead, isFirstCol
     const t = title.toLowerCase();
     if (t.includes('novos leads')) return '#3B82F6';
     if (t.includes('primeiro contato')) return '#8B5CF6';
-    if (t.includes('qualificação') || t.includes('qualificacao')) return '#F59E0B';
-    if (t.includes('proposta')) return '#F97316';
+    if (t.includes('orçamento') || t.includes('orcamento')) return '#F97316';
     if (t.includes('negociação') || t.includes('negociacao')) return '#EC4899';
-    if (t.includes('fechados')) return '#10B981';
-    if (t.includes('perdidos')) return '#EF4444';
+    if (t.includes('fechados') && !t.includes('não')) return '#10B981';
+    if (t.includes('perdidos') || t.includes('não fechados') || t.includes('nao fechados')) return '#EF4444';
     
     let hash = 0;
     for (let i = 0; i < title.length; i++) {

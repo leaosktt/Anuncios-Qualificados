@@ -10,6 +10,7 @@ CREATE TABLE public.leads (
     color text DEFAULT 'linear-gradient(135deg, #f43f5e, #8b5cf6)',
     column_id text DEFAULT 'col-1',
     tags text[] DEFAULT '{}',
+    notes text,
     created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -27,6 +28,8 @@ CREATE TABLE public.clients (
 -- Tabela de Tarefas
 CREATE TABLE public.tasks (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id uuid,
+    lead_id uuid,
     title text NOT NULL,
     date text,
     priority text DEFAULT 'medium',

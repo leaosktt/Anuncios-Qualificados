@@ -1,37 +1,12 @@
--- 1. Limpar dados antigos que não tem user_id
-DELETE FROM public.leads;
-DELETE FROM public.clients;
-DELETE FROM public.tasks;
+-- 1. Adicionar campo de notas aos leads (se não existir)
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS notes text;
 
--- 2. Adicionar user_id e estimated_value às tabelas
-ALTER TABLE public.leads 
-ADD COLUMN user_id uuid REFERENCES auth.users NOT NULL,
-ADD COLUMN estimated_value numeric DEFAULT 0;
+-- 2. Adicionar campos de user_id e lead_id nas tarefas
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS user_id uuid;
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS lead_id uuid;
 
-ALTER TABLE public.clients 
-ADD COLUMN user_id uuid REFERENCES auth.users NOT NULL;
+-- 3. Migrar os leads da coluna "Qualificação" (col-3) para "Novos Leads" (col-1)
+UPDATE public.leads SET column_id = 'col-1' WHERE column_id = 'col-3';
 
-ALTER TABLE public.tasks 
-ADD COLUMN user_id uuid REFERENCES auth.users NOT NULL;
-
--- 3. Remover as políticas antigas
-DROP POLICY IF EXISTS "Permitir acesso total aos leads" ON public.leads;
-DROP POLICY IF EXISTS "Permitir acesso total aos clientes" ON public.clients;
-DROP POLICY IF EXISTS "Permitir acesso total às tarefas" ON public.tasks;
-
--- 4. Criar as novas políticas estritas baseadas no usuário autenticado (RLS)
-
--- Para LEADS
-CREATE POLICY "Leads do usuário logado" ON public.leads
-    FOR ALL
-    USING (auth.uid() = user_id);
-
--- Para CLIENTS
-CREATE POLICY "Clientes do usuário logado" ON public.clients
-    FOR ALL
-    USING (auth.uid() = user_id);
-
--- Para TASKS
-CREATE POLICY "Tarefas do usuário logado" ON public.tasks
-    FOR ALL
-    USING (auth.uid() = user_id);
+-- 4. Opcional: Se você usa foreign keys ou restrições de usuário, pode vincular o user_id (ajuste conforme seu setup auth):
+-- ALTER TABLE public.tasks ADD CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES auth.users(id);

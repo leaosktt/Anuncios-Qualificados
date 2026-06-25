@@ -12,10 +12,10 @@ import { useAuth } from '../context/AuthContext';
 const columnsConfig = [
   { id: 'col-1', title: 'Novos Leads' },
   { id: 'col-2', title: 'Primeiro Contato' },
-  { id: 'col-3', title: 'Qualificação' },
-  { id: 'col-4', title: 'Proposta Enviada' },
+  { id: 'col-4', title: 'Orçamento Enviado' },
   { id: 'col-5', title: 'Negociação' },
-  { id: 'col-6', title: 'Fechados' }
+  { id: 'col-6', title: 'Fechados' },
+  { id: 'col-7', title: 'Não Fechados' }
 ];
 
 const AVATAR_GRADIENTS = [
