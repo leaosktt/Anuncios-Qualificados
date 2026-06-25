@@ -10,7 +10,27 @@ const LeadModal = ({ columns, defaultColumnId, onClose, onSubmit, lead }) => {
   const [priority, setPriority] = useState(lead?.priority || 'medium');
   const [columnId, setColumnId] = useState(lead?.column_id || defaultColumnId);
   const [tags, setTags] = useState(lead?.tags?.join(', ') || '');
-  const [estimatedValue, setEstimatedValue] = useState(lead?.estimated_value || '');
+  const [estimatedValue, setEstimatedValue] = useState(
+    lead?.estimated_value ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(lead.estimated_value) : ''
+  );
+
+  const handleContactChange = (e) => {
+    let val = e.target.value.replace(/\D/g, '');
+    if (val.length > 11) val = val.slice(0, 11);
+    if (val.length > 2) val = `(${val.slice(0, 2)}) ${val.slice(2)}`;
+    if (val.length > 10) val = `${val.slice(0, 10)}-${val.slice(10)}`;
+    setContact(val);
+  };
+
+  const handleEstimatedValueChange = (e) => {
+    let val = e.target.value.replace(/\D/g, '');
+    if (!val) {
+      setEstimatedValue('');
+      return;
+    }
+    const num = parseInt(val, 10) / 100;
+    setEstimatedValue(new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(num));
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -23,7 +43,7 @@ const LeadModal = ({ columns, defaultColumnId, onClose, onSubmit, lead }) => {
       date: date.trim(),
       priority,
       columnId,
-      estimated_value: Number(estimatedValue) || 0,
+      estimated_value: estimatedValue ? parseInt(estimatedValue.replace(/\D/g, ''), 10) / 100 || 0 : 0,
       tags: tags.split(',').map((tag) => tag.trim()).filter(Boolean),
     });
   };
@@ -69,19 +89,19 @@ const LeadModal = ({ columns, defaultColumnId, onClose, onSubmit, lead }) => {
               type="text"
               className={styles.formInput}
               value={contact}
-              onChange={(e) => setContact(e.target.value)}
-              placeholder="Ex: Sara Thompson"
+              onChange={handleContactChange}
+              placeholder="(47) 99999-9999"
             />
           </label>
 
           <label className={styles.formLabel}>
-            Valor Estimado (R$)
+            Valor Estimado
             <input
-              type="number"
+              type="text"
               className={styles.formInput}
               value={estimatedValue}
-              onChange={(e) => setEstimatedValue(e.target.value)}
-              placeholder="Ex: 5000"
+              onChange={handleEstimatedValueChange}
+              placeholder="R$ 5.000,00"
             />
           </label>
 
@@ -89,11 +109,10 @@ const LeadModal = ({ columns, defaultColumnId, onClose, onSubmit, lead }) => {
             <label className={styles.formLabel}>
               Data
               <input
-                type="text"
+                type="date"
                 className={styles.formInput}
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                placeholder="Ex: June 15"
               />
             </label>
 

@@ -146,9 +146,19 @@ const LeadCard = ({ lead, isOverlay, onDelete, onMove, showMovePrev, showMoveNex
         </div>
       </div>
       
-      <p className={styles.cardDescription} style={{ marginBottom: '4px' }}>
-        {lead.name} {lead.tags?.length > 0 ? `- ${lead.tags.join(', ')}` : ''}
+      <p className={styles.cardDescription} style={{ marginBottom: '6px' }}>
+        {lead.name}
       </p>
+
+      {lead.tags?.length > 0 && (
+        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '8px' }}>
+          {lead.tags.map((tag, idx) => (
+            <span key={idx} style={{ fontSize: '0.65rem', padding: '2px 8px', borderRadius: '12px', color: columnColor, fontWeight: 600, border: `1px solid ${columnColor}`, backgroundColor: 'var(--bg-app)' }}>
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
 
       <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px' }}>
         {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(lead.estimated_value || 0)}
