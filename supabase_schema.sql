@@ -11,6 +11,7 @@ CREATE TABLE public.leads (
     column_id text DEFAULT 'col-1',
     tags text[] DEFAULT '{}',
     notes text,
+    form_responses jsonb,
     created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 

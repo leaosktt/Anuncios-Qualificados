@@ -45,6 +45,41 @@ const LeadCard = ({ lead, isOverlay, onDelete, onMove, showMovePrev, showMoveNex
     }
   };
 
+  const renderFormResponses = () => {
+    if (!lead.form_responses) return null;
+    
+    let responses = [];
+    if (Array.isArray(lead.form_responses)) {
+      responses = lead.form_responses.map(r => ({
+        q: r.question || r.name,
+        a: Array.isArray(r.answer || r.values) ? (r.answer || r.values).join(', ') : (r.answer || r.values || r.value)
+      })).filter(r => r.q && r.a);
+    } else if (typeof lead.form_responses === 'object') {
+      responses = Object.entries(lead.form_responses).map(([q, a]) => ({ q, a: String(a) }));
+    }
+
+    if (responses.length === 0) return null;
+
+    const visibleResponses = responses.slice(0, 3);
+    const hasMore = responses.length > 3;
+
+    return (
+      <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px dashed var(--border-color)' }}>
+        {visibleResponses.map((res, i) => (
+          <div key={i} style={{ marginBottom: i === visibleResponses.length - 1 && !hasMore ? 0 : '8px' }}>
+            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '2px', lineHeight: '1.2' }}>{res.q}</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-primary)', fontWeight: 500, lineHeight: '1.3' }}>{res.a}</div>
+          </div>
+        ))}
+        {hasMore && (
+          <div style={{ fontSize: '0.7rem', color: 'var(--accent-primary)', marginTop: '6px', fontWeight: 600, cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); if (onEdit) onEdit(lead); }}>
+            Ver mais...
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div
       ref={setNodeRef}
@@ -144,6 +179,8 @@ const LeadCard = ({ lead, isOverlay, onDelete, onMove, showMovePrev, showMoveNex
           </div>
         </div>
       </div>
+
+      {renderFormResponses()}
       
       {lead.column_id === 'col-6' && (
         <div style={{ position: 'absolute', top: 10, right: 10, color: 'var(--status-success)' }}>
