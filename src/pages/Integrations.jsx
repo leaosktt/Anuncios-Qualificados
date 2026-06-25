@@ -14,23 +14,22 @@ const Integrations = () => {
   useEffect(() => {
     checkActiveIntegration();
     
-    // Carregar o SDK do Facebook
     window.fbAsyncInit = function() {
       window.FB.init({
-        appId      : import.meta.env.VITE_META_APP_ID || '894171913029097',
-        cookie     : true,
-        xfbml      : true,
-        version    : 'v19.0'
+        appId: '894171913029097',
+        cookie: true,
+        xfbml: true,
+        version: 'v25.0'
       });
     };
 
-    (function(d, s, id){
-       var js, fjs = d.getElementsByTagName(s)[0];
-       if (d.getElementById(id)) {return;}
-       js = d.createElement(s); js.id = id;
-       js.src = "https://connect.facebook.net/pt_BR/sdk.js";
-       fjs.parentNode.insertBefore(js, fjs);
-     }(document, 'script', 'facebook-jssdk'));
+    (function(d, s, id) {
+      var js, fjs = d.getElementsByTagName(s)[0];
+      if (d.getElementById(id)) return;
+      js = d.createElement(s); js.id = id;
+      js.src = "https://connect.facebook.net/pt_BR/sdk.js";
+      fjs.parentNode.insertBefore(js, fjs);
+    }(document, 'script', 'facebook-jssdk'));
   }, [user]);
 
   const checkActiveIntegration = async () => {
@@ -53,6 +52,7 @@ const Integrations = () => {
   };
 
   const handleFacebookConnect = () => {
+    console.log("Checando window.FB no clique: ", window.FB);
     if (window.FB) {
       window.FB.login((response) => {
         if (response.authResponse) {
