@@ -11,6 +11,8 @@ const Integrations = () => {
   const [fbPages, setFbPages] = useState([]);
   const [isSelectingPage, setIsSelectingPage] = useState(false);
   const [isLoginInProgress, setIsLoginInProgress] = useState(false);
+  const [manualToken, setManualToken] = useState('');
+  const [manualPageId, setManualPageId] = useState('');
 
   useEffect(() => {
     checkActiveIntegration();
@@ -114,6 +116,33 @@ const Integrations = () => {
     }
   };
 
+  const handleManualConnect = async () => {
+    if (!user || !manualToken.trim() || !manualPageId.trim()) return;
+    try {
+      const integrationData = {
+        user_id: user.id,
+        page_id: manualPageId.trim(),
+        page_name: 'Conexão Manual',
+        access_token: manualToken.trim()
+      };
+
+      const { data, error } = await supabase
+        .from('meta_integrations')
+        .insert([integrationData])
+        .select()
+        .maybeSingle();
+
+      if (error) throw error;
+
+      setActiveIntegration(data);
+      setManualToken('');
+      setManualPageId('');
+    } catch (error) {
+      console.error("Erro ao salvar integração manual:", error);
+      alert("Erro ao salvar o token manualmente.");
+    }
+  };
+
   const handleDisconnect = async () => {
     if (!activeIntegration || !user) return;
     if (window.confirm("Tem certeza que deseja desconectar a integração com o Meta Ads?")) {
@@ -205,15 +234,46 @@ const Integrations = () => {
               </button>
             </div>
           ) : (
-            <button 
-              onClick={handleFacebookConnect}
-              style={{ width: '100%', padding: '12px', backgroundColor: '#1877F2', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer', transition: 'all 0.2s' }}
-              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#166fe5'}
-              onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#1877F2'}
-            >
-              <LinkIcon size={18} />
-              Conectar Facebook
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <button 
+                onClick={handleFacebookConnect}
+                style={{ width: '100%', padding: '12px', backgroundColor: '#1877F2', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer', transition: 'all 0.2s' }}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#166fe5'}
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#1877F2'}
+              >
+                <LinkIcon size={18} />
+                Conectar Facebook
+              </button>
+
+              <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px' }}>Conexão manual</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <input
+                    type="text"
+                    placeholder="Page Access Token"
+                    value={manualToken}
+                    onChange={(e) => setManualToken(e.target.value)}
+                    style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-app)', color: 'var(--text-primary)', fontSize: '0.9rem' }}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Page ID"
+                    value={manualPageId}
+                    onChange={(e) => setManualPageId(e.target.value)}
+                    style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-app)', color: 'var(--text-primary)', fontSize: '0.9rem' }}
+                  />
+                  <button
+                    onClick={handleManualConnect}
+                    disabled={!manualToken || !manualPageId}
+                    style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-app)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: '8px', fontWeight: 600, cursor: (!manualToken || !manualPageId) ? 'not-allowed' : 'pointer', opacity: (!manualToken || !manualPageId) ? 0.5 : 1 }}
+                    onMouseOver={(e) => { if (manualToken && manualPageId) e.currentTarget.style.backgroundColor = 'var(--border-color)' }}
+                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-app)'}
+                  >
+                    Salvar token manualmente
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
         </div>
       </div>
