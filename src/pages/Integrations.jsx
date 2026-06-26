@@ -19,7 +19,7 @@ const Integrations = () => {
     if (!user) return;
     try {
       const { data, error } = await supabase
-        .from('meta_integrations')
+        .from('meta_connections')
         .select('*')
         .eq('user_id', user.id)
         .single();
@@ -72,7 +72,7 @@ const Integrations = () => {
       };
 
       const { data, error } = await supabase
-        .from('meta_integrations')
+        .from('meta_connections')
         .insert([integrationData])
         .select()
         .single();
@@ -92,7 +92,7 @@ const Integrations = () => {
     if (window.confirm("Tem certeza que deseja desconectar a integração com o Meta Ads?")) {
       try {
         await supabase
-          .from('meta_integrations')
+          .from('meta_connections')
           .delete()
           .eq('id', activeIntegration.id);
         setActiveIntegration(null);
