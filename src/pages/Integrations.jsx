@@ -82,7 +82,7 @@ const Integrations = () => {
         .from('meta_connections')
         .insert([integrationData])
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 
