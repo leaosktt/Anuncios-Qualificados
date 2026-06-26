@@ -22,7 +22,7 @@ const Integrations = () => {
         .from('meta_connections')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
         
       if (data) {
         setActiveIntegration(data);
@@ -40,17 +40,24 @@ const Integrations = () => {
       return;
     }
     
+    const scopes = 'pages_show_list,pages_read_engagement,leads_retrieval';
+    console.log("Solicitando login no Facebook com os seguintes escopos:", scopes);
+    
     window.FB.login((response) => {
+      console.log("Resposta completa do FB.login:", response);
       if (response.authResponse) {
-        fetchUserPages();
+        console.log("Token de Acesso (User Token) Retornado pelo Login do Facebook:", response.authResponse.accessToken);
+        console.log("Escopos garantidos pelo usuário (grantedScopes):", response.authResponse.grantedScopes);
+        fetchUserPages(response.authResponse.accessToken);
       } else {
         console.log('Usuário cancelou o login ou não autorizou totalmente.');
       }
-    }, { scope: 'pages_show_list,leads_retrieval,pages_read_engagement' });
+    }, { scope: scopes, return_scopes: true });
   };
 
-  const fetchUserPages = () => {
-    window.FB.api('/me/accounts', function(response) {
+  const fetchUserPages = (accessToken) => {
+    window.FB.api('/me/accounts', { fields: 'id,name,access_token' }, function(response) {
+      console.log(`Resposta da chamada https://graph.facebook.com/me/accounts?fields=id,name,access_token&access_token=${accessToken}:`, response);
       if (response && !response.error && response.data) {
         setFbPages(response.data);
         setIsSelectingPage(true);
