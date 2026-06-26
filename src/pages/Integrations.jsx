@@ -20,7 +20,7 @@ const Integrations = () => {
     if (!user) return;
     try {
       const { data, error } = await supabase
-        .from('meta_connections')
+        .from('meta_integrations')
         .select('*')
         .eq('user_id', user.id)
         .maybeSingle();
@@ -99,7 +99,7 @@ const Integrations = () => {
       };
 
       const { data, error } = await supabase
-        .from('meta_connections')
+        .from('meta_integrations')
         .insert([integrationData])
         .select()
         .maybeSingle();
@@ -119,10 +119,15 @@ const Integrations = () => {
     if (window.confirm("Tem certeza que deseja desconectar a integração com o Meta Ads?")) {
       try {
         await supabase
-          .from('meta_connections')
+          .from('meta_integrations')
           .delete()
           .eq('id', activeIntegration.id);
         setActiveIntegration(null);
+        if (window.FB) {
+          window.FB.logout(() => {
+            console.log("Usuário deslogado do Facebook com sucesso.");
+          });
+        }
       } catch (error) {
         console.error("Erro ao desconectar:", error);
       }
