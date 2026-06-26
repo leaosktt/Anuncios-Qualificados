@@ -10,6 +10,7 @@ const Integrations = () => {
   const [loading, setLoading] = useState(true);
   const [fbPages, setFbPages] = useState([]);
   const [isSelectingPage, setIsSelectingPage] = useState(false);
+  const [isLoginInProgress, setIsLoginInProgress] = useState(false);
 
   useEffect(() => {
     checkActiveIntegration();
@@ -40,30 +41,49 @@ const Integrations = () => {
       return;
     }
     
+    if (isLoginInProgress) return;
+    setIsLoginInProgress(true);
+    
     const scopes = 'pages_show_list,pages_read_engagement,leads_retrieval';
     console.log("Solicitando login no Facebook com os seguintes escopos:", scopes);
     
     window.FB.login((response) => {
+      setIsLoginInProgress(false);
       console.log("Resposta completa do FB.login:", response);
       if (response.authResponse) {
+        console.log("FB User ID retornado pelo Login:", response.authResponse.userID);
         console.log("Token de Acesso (User Token) Retornado pelo Login do Facebook:", response.authResponse.accessToken);
         console.log("Escopos garantidos pelo usuário (grantedScopes):", response.authResponse.grantedScopes);
-        fetchUserPages(response.authResponse.accessToken);
+        fetchUserPages(response.authResponse.accessToken, response.authResponse.userID);
       } else {
         console.log('Usuário cancelou o login ou não autorizou totalmente.');
       }
     }, { scope: scopes, return_scopes: true });
   };
 
-  const fetchUserPages = (accessToken) => {
-    window.FB.api('/me/accounts', { fields: 'id,name,access_token' }, function(response) {
-      console.log(`Resposta da chamada https://graph.facebook.com/me/accounts?fields=id,name,access_token&access_token=${accessToken}:`, response);
-      if (response && !response.error && response.data) {
+  const fetchUserPages = (accessToken, fbUserId) => {
+    window.FB.api('/me/accounts', { fields: 'id,name,access_token', limit: 100 }, function(response) {
+      console.log(`Resposta da chamada /me/accounts:`, response);
+      if (response && !response.error && response.data && response.data.length > 0) {
         setFbPages(response.data);
         setIsSelectingPage(true);
       } else {
-        console.error("Erro ao buscar páginas:", response.error);
-        alert("Não foi possível carregar as páginas do Facebook.");
+        console.log("O endpoint /me/accounts não retornou páginas ou deu erro. Tentando endpoint alternativo /{user-id}/accounts...");
+        if (fbUserId) {
+          window.FB.api(`/${fbUserId}/accounts`, { fields: 'id,name,access_token', limit: 100 }, function(altResponse) {
+            console.log(`Resposta da chamada /${fbUserId}/accounts:`, altResponse);
+            if (altResponse && !altResponse.error && altResponse.data) {
+              setFbPages(altResponse.data);
+              setIsSelectingPage(true);
+            } else {
+              console.error("Erro no endpoint alternativo:", altResponse?.error);
+              alert("Não foi possível carregar as páginas do Facebook.");
+            }
+          });
+        } else {
+          console.error("Erro ao buscar páginas e sem userID para endpoint alternativo.");
+          alert("Não foi possível carregar as páginas do Facebook.");
+        }
       }
     });
   };
