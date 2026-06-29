@@ -127,6 +127,9 @@ const Integrations = () => {
         access_token: page.access_token
       };
 
+      // Limpar integrações antigas para evitar duplicidade
+      await supabase.from('meta_integrations').delete().eq('user_id', user.id);
+
       const { data, error } = await supabase
         .from('meta_integrations')
         .insert([integrationData])
@@ -152,6 +155,9 @@ const Integrations = () => {
         page_name: 'Conexão Manual',
         access_token: manualToken.trim()
       };
+
+      // Limpar integrações antigas para evitar duplicidade
+      await supabase.from('meta_integrations').delete().eq('user_id', user.id);
 
       const { data, error } = await supabase
         .from('meta_integrations')
