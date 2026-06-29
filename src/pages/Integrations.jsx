@@ -46,7 +46,7 @@ const Integrations = () => {
     if (isLoginInProgress) return;
     setIsLoginInProgress(true);
     
-    const scopes = 'pages_show_list,pages_read_engagement,leads_retrieval';
+    const scopes = 'pages_show_list,pages_read_engagement,leads_retrieval,pages_manage_metadata';
     console.log("Solicitando login no Facebook com os seguintes escopos:", scopes);
     
     window.FB.login((response) => {
@@ -60,7 +60,7 @@ const Integrations = () => {
       } else {
         console.log('Usuário cancelou o login ou não autorizou totalmente.');
       }
-    }, { scope: scopes, return_scopes: true });
+    }, { scope: scopes, return_scopes: true, auth_type: 'rerequest' });
   };
 
   const fetchUserPages = (accessToken, fbUserId) => {
@@ -94,25 +94,30 @@ const Integrations = () => {
     if (!user) return;
     try {
       // 1. Assinar a página para receber webhooks de leadgen
-      await new Promise((resolve, reject) => {
-        window.FB.api(
-          `/${page.id}/subscribed_apps`,
-          'POST',
-          {
-            subscribed_fields: ['leadgen'],
-            access_token: page.access_token
-          },
-          function(response) {
-            if (response && !response.error) {
-              console.log("App successfully subscribed to page webhooks!", response);
-              resolve(response);
-            } else {
-              console.error("Error subscribing app to page:", response?.error);
-              reject(response?.error || new Error("Erro ao assinar webhooks da página."));
+      try {
+        await new Promise((resolve, reject) => {
+          window.FB.api(
+            `/${page.id}/subscribed_apps`,
+            'POST',
+            {
+              subscribed_fields: ['leadgen'],
+              access_token: page.access_token
+            },
+            function(response) {
+              if (response && !response.error) {
+                console.log("App successfully subscribed to page webhooks!", response);
+                resolve(response);
+              } else {
+                console.error("Error subscribing app to page:", response?.error);
+                reject(response?.error);
+              }
             }
-          }
-        );
-      });
+          );
+        });
+      } catch (fbError) {
+        console.warn("Aviso: Falha ao assinar webhooks no Facebook. Salvando no banco mesmo assim...", fbError);
+        // Não jogamos o erro pra frente (throw) para permitir que o app salve a integração.
+      }
 
       // 2. Salvar integração no banco de dados
       const integrationData = {
@@ -134,7 +139,7 @@ const Integrations = () => {
       setIsSelectingPage(false);
     } catch (error) {
       console.error("Erro ao conectar página e salvar integração:", error);
-      alert("Erro ao conectar a página e assinar o Webhook. Verifique o console.");
+      alert("Erro ao conectar a página e salvar no banco. Verifique o console.");
     }
   };
 
