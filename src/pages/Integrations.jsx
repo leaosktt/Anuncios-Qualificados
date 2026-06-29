@@ -46,7 +46,7 @@ const Integrations = () => {
     if (isLoginInProgress) return;
     setIsLoginInProgress(true);
     
-    const scopes = 'pages_show_list,pages_read_engagement,leads_retrieval,pages_manage_metadata';
+    const scopes = 'pages_show_list,pages_read_engagement,leads_retrieval';
     console.log("Solicitando login no Facebook com os seguintes escopos:", scopes);
     
     window.FB.login((response) => {
