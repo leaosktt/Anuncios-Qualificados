@@ -149,11 +149,34 @@ const Integrations = () => {
   const handleManualConnect = async () => {
     if (!user || !manualToken.trim() || !manualPageId.trim()) return;
     try {
+      const pageId = manualPageId.trim();
+      const token = manualToken.trim();
+
+      // 1. Tentar assinar o webhook automaticamente usando o token manual
+      try {
+        const response = await fetch(`https://graph.facebook.com/v19.0/${pageId}/subscribed_apps`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            subscribed_fields: ['leadgen'],
+            access_token: token
+          })
+        });
+        const data = await response.json();
+        if (data.success) {
+          console.log("Assinatura de Webhook realizada com sucesso via Token Manual!");
+        } else {
+          console.warn("Aviso ao assinar webhook manualmente:", data.error);
+        }
+      } catch (err) {
+        console.warn("Erro ao tentar assinar webhook via fetch:", err);
+      }
+
       const integrationData = {
         user_id: user.id,
-        page_id: manualPageId.trim(),
+        page_id: pageId,
         page_name: 'Conexão Manual',
-        access_token: manualToken.trim()
+        access_token: token
       };
 
       // Limpar integrações antigas para evitar duplicidade
