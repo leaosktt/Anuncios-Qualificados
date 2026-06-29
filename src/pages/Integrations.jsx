@@ -93,6 +93,28 @@ const Integrations = () => {
   const handleSelectPage = async (page) => {
     if (!user) return;
     try {
+      // 1. Assinar a página para receber webhooks de leadgen
+      await new Promise((resolve, reject) => {
+        window.FB.api(
+          `/${page.id}/subscribed_apps`,
+          'POST',
+          {
+            subscribed_fields: ['leadgen'],
+            access_token: page.access_token
+          },
+          function(response) {
+            if (response && !response.error) {
+              console.log("App successfully subscribed to page webhooks!", response);
+              resolve(response);
+            } else {
+              console.error("Error subscribing app to page:", response?.error);
+              reject(response?.error || new Error("Erro ao assinar webhooks da página."));
+            }
+          }
+        );
+      });
+
+      // 2. Salvar integração no banco de dados
       const integrationData = {
         user_id: user.id,
         page_id: page.id,
@@ -111,8 +133,8 @@ const Integrations = () => {
       setActiveIntegration(data);
       setIsSelectingPage(false);
     } catch (error) {
-      console.error("Erro ao salvar integração:", error);
-      alert("Erro ao conectar a página. Verifique o console.");
+      console.error("Erro ao conectar página e salvar integração:", error);
+      alert("Erro ao conectar a página e assinar o Webhook. Verifique o console.");
     }
   };
 
