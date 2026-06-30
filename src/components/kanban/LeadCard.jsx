@@ -58,6 +58,15 @@ const LeadCard = ({ lead, isOverlay, onDelete, onMove, showMovePrev, showMoveNex
       responses = Object.entries(lead.form_responses).map(([q, a]) => ({ q, a: String(a) }));
     }
 
+    responses = responses.filter(r => {
+      const qLower = r.q.toLowerCase();
+      return !qLower.includes('nome') && 
+             !qLower.includes('telefone') && 
+             !qLower.includes('celular') && 
+             !qLower.includes('e-mail') && 
+             !qLower.includes('email');
+    });
+
     if (responses.length === 0) return null;
 
     const visibleResponses = responses.slice(0, 3);

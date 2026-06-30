@@ -15,6 +15,15 @@ const FormResponsesModal = ({ lead, onClose }) => {
     responses = Object.entries(lead.form_responses).map(([q, a]) => ({ q, a: String(a) }));
   }
 
+  responses = responses.filter(r => {
+    const qLower = r.q.toLowerCase();
+    return !qLower.includes('nome') && 
+           !qLower.includes('telefone') && 
+           !qLower.includes('celular') && 
+           !qLower.includes('e-mail') && 
+           !qLower.includes('email');
+  });
+
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
