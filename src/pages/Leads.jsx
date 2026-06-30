@@ -170,7 +170,6 @@ const Leads = () => {
     <div className={styles.boardContainer}>
       <div className={styles.boardHeader}>
         <div className={styles.boardStats}>
-          Total: {leads.length} Leads • Closed: {closedCount} Deals
         </div>
 
         <div className={styles.boardControls}>
