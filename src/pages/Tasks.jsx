@@ -22,6 +22,7 @@ const Tasks = () => {
   const [date, setDate] = useState('');
   const [priority, setPriority] = useState('medium');
   const [leadId, setLeadId] = useState('');
+  const [editingTaskId, setEditingTaskId] = useState(null);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all'); // all, pending, progress, completed, overdue, today
@@ -79,6 +80,17 @@ const Tasks = () => {
     setDate('');
     setPriority('medium');
     setLeadId('');
+    setEditingTaskId(null);
+  };
+
+  const handleEditTask = (task) => {
+    setEditingTaskId(task.id);
+    setTitle(task.title);
+    setDate(task.date || '');
+    setPriority(task.priority || 'medium');
+    setLeadId(task.lead_id || '');
+    setIsModalOpen(true);
+    setOpenMenuId(null);
   };
 
   const handleDeleteTask = async (id) => {
@@ -100,21 +112,27 @@ const Tasks = () => {
 
     try {
       const payload = {
-        user_id: user.id,
         title: title.trim(),
         date: date.trim() || null,
         priority,
-        done: false,
       };
       if (leadId) payload.lead_id = leadId;
+      else payload.lead_id = null;
 
-      const { data, error } = await supabase.from('tasks').insert([payload]).select();
-      
-      if (error) throw error;
-      if (data && data.length > 0) setTasks(prev => [data[0], ...prev]);
+      if (editingTaskId) {
+        const { data, error } = await supabase.from('tasks').update(payload).eq('id', editingTaskId).select();
+        if (error) throw error;
+        if (data && data.length > 0) setTasks(prev => prev.map(t => t.id === editingTaskId ? data[0] : t));
+      } else {
+        payload.user_id = user.id;
+        payload.done = false;
+        const { data, error } = await supabase.from('tasks').insert([payload]).select();
+        if (error) throw error;
+        if (data && data.length > 0) setTasks(prev => [data[0], ...prev]);
+      }
       closeModal();
     } catch (error) {
-      console.error('Erro ao criar tarefa:', error);
+      console.error('Erro ao salvar tarefa:', error);
     }
   };
 
@@ -342,7 +360,7 @@ const Tasks = () => {
                       </td>
                       <td>
                         <span className={`${styles.badge} ${styles[task.priority]}`}>
-                          {task.priority.toUpperCase()}
+                          {task.priority === 'high' ? 'ALTA' : task.priority === 'medium' ? 'MÉDIA' : 'BAIXA'}
                         </span>
                       </td>
                       <td style={{ position: 'relative' }}>
@@ -355,6 +373,14 @@ const Tasks = () => {
                         
                         {openMenuId === task.id && (
                           <div style={{ position: 'absolute', top: '100%', right: 0, backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '6px', boxShadow: 'var(--shadow-md)', zIndex: 20, padding: '4px', minWidth: '120px' }}>
+                            <button
+                              onClick={() => handleEditTask(task)}
+                              style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px', background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', fontSize: '0.85rem', borderRadius: '4px', textAlign: 'left' }}
+                              onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-app)'}
+                              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                            >
+                              <MoreHorizontal size={14} /> Editar
+                            </button>
                             <button
                               onClick={() => handleDeleteTask(task.id)}
                               style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px', background: 'none', border: 'none', color: 'var(--status-danger)', cursor: 'pointer', fontSize: '0.85rem', borderRadius: '4px', textAlign: 'left' }}

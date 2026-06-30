@@ -17,6 +17,7 @@ const Projects = () => {
   const [status, setStatus] = useState('Em Andamento');
   const [progress, setProgress] = useState(0);
   const [dueDate, setDueDate] = useState('');
+  const [editingProjectId, setEditingProjectId] = useState(null);
 
   useEffect(() => {
     if (user) fetchProjects();
@@ -40,6 +41,17 @@ const Projects = () => {
     setStatus('Em Andamento');
     setProgress(0);
     setDueDate('');
+    setEditingProjectId(null);
+  };
+
+  const handleEditProject = (project) => {
+    setEditingProjectId(project.id);
+    setName(project.name);
+    setStatus(project.status || 'Em Andamento');
+    setProgress(project.progress || 0);
+    setDueDate(project.due_date || '');
+    setIsModalOpen(true);
+    setOpenMenuId(null);
   };
 
   const handleDeleteProject = async (id) => {
@@ -60,19 +72,26 @@ const Projects = () => {
     if (!name.trim() || !user) return;
 
     try {
-      const { data, error } = await supabase.from('projects').insert([{
-        user_id: user.id,
+      const payload = {
         name: name.trim(),
         status,
         progress: Number(progress),
         due_date: dueDate.trim() || 'Sem prazo'
-      }]).select();
-      
-      if (error) throw error;
-      if (data && data.length > 0) setProjects(prev => [data[0], ...prev]);
+      };
+
+      if (editingProjectId) {
+        const { data, error } = await supabase.from('projects').update(payload).eq('id', editingProjectId).select();
+        if (error) throw error;
+        if (data && data.length > 0) setProjects(prev => prev.map(p => p.id === editingProjectId ? data[0] : p));
+      } else {
+        payload.user_id = user.id;
+        const { data, error } = await supabase.from('projects').insert([payload]).select();
+        if (error) throw error;
+        if (data && data.length > 0) setProjects(prev => [data[0], ...prev]);
+      }
       closeModal();
     } catch (error) {
-      console.error('Erro ao criar projeto:', error);
+      console.error('Erro ao salvar projeto:', error);
     }
   };
 
@@ -95,7 +114,7 @@ const Projects = () => {
       </div>
 
       {isModalOpen && (
-        <Modal title="Novo Projeto" onClose={closeModal}>
+        <Modal title={editingProjectId ? "Editar Projeto" : "Novo Projeto"} onClose={closeModal}>
           <form onSubmit={handleSubmit} className={modalStyles.form}>
             <label className={modalStyles.formLabel}>
               Nome do Projeto
@@ -126,7 +145,7 @@ const Projects = () => {
 
             <div className={modalStyles.actions}>
               <button type="button" className={`${modalStyles.btn} ${modalStyles.btnOutline}`} onClick={closeModal}>Cancelar</button>
-              <button type="submit" className={`${modalStyles.btn} ${modalStyles.btnPrimary}`}>Criar Projeto</button>
+              <button type="submit" className={`${modalStyles.btn} ${modalStyles.btnPrimary}`}>{editingProjectId ? 'Salvar' : 'Criar Projeto'}</button>
             </div>
           </form>
         </Modal>
@@ -157,6 +176,14 @@ const Projects = () => {
                   {openMenuId === project.id && (
                     <div style={{ position: 'absolute', top: '100%', right: 0, backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '6px', boxShadow: 'var(--shadow-md)', zIndex: 20, padding: '4px', minWidth: '120px' }}>
                       <button
+                        onClick={() => handleEditProject(project)}
+                        style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px', background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', fontSize: '0.85rem', borderRadius: '4px', textAlign: 'left' }}
+                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-app)'}
+                        onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                      >
+                        <MoreHorizontal size={14} /> Editar
+                      </button>
+                      <button
                         onClick={() => handleDeleteProject(project.id)}
                         style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px', background: 'none', border: 'none', color: 'var(--status-danger)', cursor: 'pointer', fontSize: '0.85rem', borderRadius: '4px', textAlign: 'left' }}
                         onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--status-danger-bg)'}
@@ -186,9 +213,9 @@ const Projects = () => {
                   <span style={{ fontSize: '0.85rem', fontWeight: 500, color: getStatusColor(project.status) }}>
                     {project.status}
                   </span>
-                  <button style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', background: 'none', border: 'none', cursor: 'pointer' }}>
-                    Detalhes <ArrowRight size={14} />
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                    Em breve <ArrowRight size={14} />
+                  </div>
                 </div>
               </div>
             ))}

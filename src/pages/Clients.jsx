@@ -18,6 +18,7 @@ const Clients = () => {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [status, setStatus] = useState('Ativo');
+  const [editingClientId, setEditingClientId] = useState(null);
 
   useEffect(() => {
     if (user) fetchClients();
@@ -42,6 +43,18 @@ const Clients = () => {
     setEmail('');
     setPhone('');
     setStatus('Ativo');
+    setEditingClientId(null);
+  };
+
+  const handleEditClient = (client) => {
+    setEditingClientId(client.id);
+    setName(client.name);
+    setContact(client.contact || '');
+    setEmail(client.email || '');
+    setPhone(client.phone || '');
+    setStatus(client.status || 'Ativo');
+    setIsModalOpen(true);
+    setOpenMenuId(null);
   };
 
   const handleDeleteClient = async (id) => {
@@ -62,20 +75,27 @@ const Clients = () => {
     if (!name.trim() || !user) return;
 
     try {
-      const { data, error } = await supabase.from('clients').insert([{
-        user_id: user.id,
+      const payload = {
         name: name.trim(),
         contact: contact.trim(),
         email: email.trim(),
         phone: phone.trim(),
         status
-      }]).select();
-      
-      if (error) throw error;
-      if (data && data.length > 0) setClients(prev => [data[0], ...prev]);
+      };
+
+      if (editingClientId) {
+        const { data, error } = await supabase.from('clients').update(payload).eq('id', editingClientId).select();
+        if (error) throw error;
+        if (data && data.length > 0) setClients(prev => prev.map(c => c.id === editingClientId ? data[0] : c));
+      } else {
+        payload.user_id = user.id;
+        const { data, error } = await supabase.from('clients').insert([payload]).select();
+        if (error) throw error;
+        if (data && data.length > 0) setClients(prev => [data[0], ...prev]);
+      }
       closeModal();
     } catch (error) {
-      console.error('Erro ao criar cliente:', error);
+      console.error('Erro ao salvar cliente:', error);
     }
   };
 
@@ -89,7 +109,7 @@ const Clients = () => {
       </div>
 
       {isModalOpen && (
-        <Modal title="Novo Cliente" onClose={closeModal}>
+        <Modal title={editingClientId ? "Editar Cliente" : "Novo Cliente"} onClose={closeModal}>
           <form onSubmit={handleSubmit} className={modalStyles.form}>
             <label className={modalStyles.formLabel}>
               Nome da Empresa
@@ -124,7 +144,7 @@ const Clients = () => {
 
             <div className={modalStyles.actions}>
               <button type="button" className={`${modalStyles.btn} ${modalStyles.btnOutline}`} onClick={closeModal}>Cancelar</button>
-              <button type="submit" className={`${modalStyles.btn} ${modalStyles.btnPrimary}`}>Adicionar Cliente</button>
+              <button type="submit" className={`${modalStyles.btn} ${modalStyles.btnPrimary}`}>{editingClientId ? 'Salvar' : 'Adicionar Cliente'}</button>
             </div>
           </form>
         </Modal>
@@ -183,6 +203,14 @@ const Clients = () => {
                       
                       {openMenuId === client.id && (
                         <div style={{ position: 'absolute', top: '100%', right: 0, backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '6px', boxShadow: 'var(--shadow-md)', zIndex: 20, padding: '4px', minWidth: '120px' }}>
+                          <button
+                            onClick={() => handleEditClient(client)}
+                            style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px', background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', fontSize: '0.85rem', borderRadius: '4px', textAlign: 'left' }}
+                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-app)'}
+                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                          >
+                            <MoreHorizontal size={14} /> Editar
+                          </button>
                           <button
                             onClick={() => handleDeleteClient(client.id)}
                             style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px', background: 'none', border: 'none', color: 'var(--status-danger)', cursor: 'pointer', fontSize: '0.85rem', borderRadius: '4px', textAlign: 'left' }}
