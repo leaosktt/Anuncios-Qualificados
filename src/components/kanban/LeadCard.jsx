@@ -119,7 +119,7 @@ const LeadCard = ({ lead, isOverlay, onDelete, onMove, showMovePrev, showMoveNex
                 LEAD META ADS
               </div>
             )}
-            {!displaySubtitle && lead.tags?.length > 0 && lead.tags.map((tag, idx) => (
+            {!displaySubtitle && lead.tags?.length > 0 && lead.tags.filter(t => t.toLowerCase() !== 'meta-ads').map((tag, idx) => (
               <span key={idx} style={{ fontSize: '0.65rem', padding: '2px 8px', borderRadius: '12px', color: columnColor || 'var(--accent-primary)', fontWeight: 600, backgroundColor: `${columnColor}15` || 'var(--accent-primary-transparent)' }}>
                 {tag}
               </span>
@@ -128,7 +128,7 @@ const LeadCard = ({ lead, isOverlay, onDelete, onMove, showMovePrev, showMoveNex
           {displaySubtitle && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <p className={styles.cardDescription} style={{ margin: 0 }}>{displaySubtitle}</p>
-              {lead.tags?.length > 0 && lead.tags.map((tag, idx) => (
+              {lead.tags?.length > 0 && lead.tags.filter(t => t.toLowerCase() !== 'meta-ads').map((tag, idx) => (
                 <span key={idx} style={{ fontSize: '0.65rem', padding: '2px 8px', borderRadius: '12px', color: columnColor || 'var(--accent-primary)', fontWeight: 600, backgroundColor: `${columnColor}15` || 'var(--accent-primary-transparent)' }}>
                   {tag}
                 </span>
