@@ -40,8 +40,8 @@ const FormResponsesModal = ({ lead, onClose }) => {
           {responses.length > 0 ? (
             responses.map((res, i) => (
               <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '4px', backgroundColor: 'var(--bg-app)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{res.q}</span>
-                <span style={{ fontSize: '1rem', color: 'var(--text-primary)', fontWeight: 600 }}>{res.a}</span>
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{res.q}</span>
+                <span style={{ fontSize: '1rem', color: 'var(--text-primary)', fontWeight: 600, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{res.a}</span>
               </div>
             ))
           ) : (

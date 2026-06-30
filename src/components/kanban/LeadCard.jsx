@@ -79,8 +79,8 @@ const LeadCard = ({ lead, isOverlay, onDelete, onMove, showMovePrev, showMoveNex
         <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '2px' }}>Respostas do Formulário</div>
         {visibleResponses.map((res, i) => (
           <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{res.q}</span>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>{res.a}</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{res.q}</span>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{res.a}</span>
           </div>
         ))}
         {hasMore && (
