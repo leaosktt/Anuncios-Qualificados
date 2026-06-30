@@ -5,7 +5,7 @@ import { MoreHorizontal, Plus } from 'lucide-react';
 import LeadCard from './LeadCard';
 import styles from './Kanban.module.css';
 
-const Column = ({ column, leads, onAddCard, onDeleteLead, onMoveLead, isFirstColumn, isLastColumn, onEditLead, onUpdateDate, onEditNotes }) => {
+const Column = ({ column, leads, onAddCard, onDeleteLead, onMoveLead, isFirstColumn, isLastColumn, onEditLead, onUpdateDate, onEditNotes, onViewFormResponses }) => {
   const leadsIds = useMemo(() => leads.map((l) => l.id), [leads]);
 
   const getColumnColor = (title) => {
@@ -65,7 +65,9 @@ const Column = ({ column, leads, onAddCard, onDeleteLead, onMoveLead, isFirstCol
               onEdit={onEditLead}
               onUpdateDate={onUpdateDate}
               onEditNotes={onEditNotes}
+              onViewResponses={onViewFormResponses}
             />
+
           ))}
         </SortableContext>
       </div>

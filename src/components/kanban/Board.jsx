@@ -19,7 +19,7 @@ import Column from './Column';
 import LeadCard from './LeadCard';
 import styles from './Kanban.module.css';
 
-const Board = ({ columns, leads, setLeads, loading, onEditLead, onUpdateDate, onEditNotes, fetchLeads }) => {
+const Board = ({ columns, leads, setLeads, loading, onEditLead, onUpdateDate, onEditNotes, onViewFormResponses, fetchLeads }) => {
   const [activeId, setActiveId] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
@@ -201,6 +201,7 @@ const Board = ({ columns, leads, setLeads, loading, onEditLead, onUpdateDate, on
             onEditLead={onEditLead}
             onUpdateDate={onUpdateDate}
             onEditNotes={onEditNotes}
+            onViewFormResponses={onViewFormResponses}
           />
         ))}
 

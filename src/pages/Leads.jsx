@@ -3,6 +3,7 @@ import { Filter, Plus } from 'lucide-react';
 import Board from '../components/kanban/Board';
 import LeadModal from '../components/kanban/LeadModal';
 import NotesModal from '../components/kanban/NotesModal';
+import FormResponsesModal from '../components/kanban/FormResponsesModal';
 import LeadsListModal from '../components/kanban/LeadsListModal';
 import FilterModal from '../components/kanban/FilterModal';
 import styles from '../components/kanban/Kanban.module.css';
@@ -34,6 +35,7 @@ const Leads = () => {
   const [targetColumnId, setTargetColumnId] = useState(columnsConfig[0].id);
   const [editingLead, setEditingLead] = useState(null);
   const [notesLead, setNotesLead] = useState(null);
+  const [formResponsesLead, setFormResponsesLead] = useState(null);
   
   const [isListModalOpen, setIsListModalOpen] = useState(false);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
@@ -193,6 +195,7 @@ const Leads = () => {
         onEditLead={handleEditLead}
         onUpdateDate={(id, date) => handleUpdateField(id, 'date', date)}
         onEditNotes={(lead) => setNotesLead(lead)}
+        onViewFormResponses={(lead) => setFormResponsesLead(lead)}
         fetchLeads={fetchLeads}
       />
 
@@ -214,6 +217,13 @@ const Leads = () => {
             handleUpdateField(id, 'notes', text);
             setNotesLead(null);
           }}
+        />
+      )}
+
+      {formResponsesLead && (
+        <FormResponsesModal
+          lead={formResponsesLead}
+          onClose={() => setFormResponsesLead(null)}
         />
       )}
 

@@ -4,7 +4,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Mail, Phone, Calendar, MessageSquare, CheckCircle2, MoreHorizontal, Trash2, ArrowLeft, ArrowRight } from 'lucide-react';
 import styles from './Kanban.module.css';
 
-const LeadCard = ({ lead, isOverlay, onDelete, onMove, showMovePrev, showMoveNext, columnTitle, columnColor, onEdit, onUpdateDate, onEditNotes }) => {
+const LeadCard = ({ lead, isOverlay, onDelete, onMove, showMovePrev, showMoveNext, columnTitle, columnColor, onEdit, onUpdateDate, onEditNotes, onViewResponses }) => {
   const [showMenu, setShowMenu] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [isMoving, setIsMoving] = useState(false);
@@ -73,7 +73,7 @@ const LeadCard = ({ lead, isOverlay, onDelete, onMove, showMovePrev, showMoveNex
           </div>
         ))}
         {hasMore && (
-          <div style={{ fontSize: '0.75rem', color: 'var(--accent-primary)', fontWeight: 600, cursor: 'pointer', marginTop: '4px' }} onClick={(e) => { e.stopPropagation(); if (onEdit) onEdit(lead); }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--accent-primary)', fontWeight: 600, cursor: 'pointer', marginTop: '4px' }} onClick={(e) => { e.stopPropagation(); if (onViewResponses) onViewResponses(lead); }}>
             Ver todas as respostas...
           </div>
         )}
@@ -98,16 +98,32 @@ const LeadCard = ({ lead, isOverlay, onDelete, onMove, showMovePrev, showMoveNex
     >
       <div className={styles.cardHeader}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          {isMetaLead && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.65rem', fontWeight: 700, color: '#1877F2', backgroundColor: 'rgba(24, 119, 242, 0.1)', padding: '2px 6px', borderRadius: '4px', width: 'fit-content' }}>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-              </svg>
-              LEAD META ADS
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <h4 className={styles.cardTitle} style={{ margin: 0 }}>{displayTitle}</h4>
+            {isMetaLead && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.65rem', fontWeight: 700, color: '#1877F2', backgroundColor: 'rgba(24, 119, 242, 0.1)', padding: '2px 6px', borderRadius: '4px', width: 'fit-content' }}>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                </svg>
+                LEAD META ADS
+              </div>
+            )}
+            {!displaySubtitle && lead.tags?.length > 0 && lead.tags.map((tag, idx) => (
+              <span key={idx} style={{ fontSize: '0.65rem', padding: '2px 8px', borderRadius: '12px', color: columnColor || 'var(--accent-primary)', fontWeight: 600, backgroundColor: `${columnColor}15` || 'var(--accent-primary-transparent)' }}>
+                {tag}
+              </span>
+            ))}
+          </div>
+          {displaySubtitle && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <p className={styles.cardDescription} style={{ margin: 0 }}>{displaySubtitle}</p>
+              {lead.tags?.length > 0 && lead.tags.map((tag, idx) => (
+                <span key={idx} style={{ fontSize: '0.65rem', padding: '2px 8px', borderRadius: '12px', color: columnColor || 'var(--accent-primary)', fontWeight: 600, backgroundColor: `${columnColor}15` || 'var(--accent-primary-transparent)' }}>
+                  {tag}
+                </span>
+              ))}
             </div>
           )}
-          <h4 className={styles.cardTitle}>{displayTitle}</h4>
-          {displaySubtitle && <p className={styles.cardDescription}>{displaySubtitle}</p>}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'relative' }}>
           <div 
@@ -172,15 +188,6 @@ const LeadCard = ({ lead, isOverlay, onDelete, onMove, showMovePrev, showMoveNex
         </div>
       )}
 
-      {lead.tags?.length > 0 && (
-        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '2px' }}>
-          {lead.tags.map((tag, idx) => (
-            <span key={idx} style={{ fontSize: '0.65rem', padding: '2px 8px', borderRadius: '12px', color: columnColor || 'var(--accent-primary)', fontWeight: 600, backgroundColor: `${columnColor}15` || 'var(--accent-primary-transparent)' }}>
-              {tag}
-            </span>
-          ))}
-        </div>
-      )}
 
       {lead.estimated_value > 0 && (
         <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '4px' }}>
