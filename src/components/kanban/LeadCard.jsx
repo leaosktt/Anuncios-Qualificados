@@ -64,7 +64,9 @@ const LeadCard = ({ lead, isOverlay, onDelete, onMove, showMovePrev, showMoveNex
              !qLower.includes('telefone') && 
              !qLower.includes('celular') && 
              !qLower.includes('e-mail') && 
-             !qLower.includes('email');
+             !qLower.includes('email') &&
+             !qLower.includes('name') &&
+             !qLower.includes('phone');
     });
 
     if (responses.length === 0) return null;
