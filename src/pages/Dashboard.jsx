@@ -10,8 +10,8 @@ import styles from './Pages.module.css';
 const LEAD_COLUMNS = {
   'col-1': 'Novos Leads',
   'col-2': 'Primeiro Contato',
+  'col-3': 'Cliente Qualificado',
   'col-4': 'Orçamento Enviado',
-  'col-5': 'Negociação',
   'col-6': 'Fechados',
   'col-7': 'Não Fechados',
 };

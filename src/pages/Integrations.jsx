@@ -63,8 +63,33 @@ const Integrations = () => {
     }, { scope: scopes, return_scopes: true, auth_type: 'rerequest' });
   };
 
-  const fetchUserPages = (accessToken, fbUserId) => {
-    window.FB.api('/me/accounts', { fields: 'id,name,access_token', limit: 100 }, function(response) {
+  const fetchUserPages = async (accessToken, fbUserId) => {
+    let finalAccessToken = accessToken;
+    
+    // Trocar token de curto prazo por token de longo prazo (long-lived token)
+    try {
+      const appId = import.meta.env.VITE_META_APP_ID;
+      const appSecret = import.meta.env.VITE_META_APP_SECRET;
+      
+      if (appId && appSecret) {
+        console.log("Trocando token de curto prazo por um de longo prazo...");
+        const response = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${accessToken}`);
+        const data = await response.json();
+        
+        if (data.access_token) {
+          console.log("Token de longo prazo gerado com sucesso!");
+          finalAccessToken = data.access_token;
+        } else {
+          console.warn("Nao foi possivel gerar token longo, usando o normal:", data.error);
+        }
+      } else {
+        console.warn("VITE_META_APP_ID ou VITE_META_APP_SECRET nao definidos. Usando token de curto prazo.");
+      }
+    } catch (err) {
+      console.error("Erro na troca de token:", err);
+    }
+
+    window.FB.api('/me/accounts', { access_token: finalAccessToken, fields: 'id,name,access_token', limit: 100 }, function(response) {
       console.log(`Resposta da chamada /me/accounts:`, response);
       if (response && !response.error && response.data && response.data.length > 0) {
         setFbPages(response.data);
@@ -72,7 +97,7 @@ const Integrations = () => {
       } else {
         console.log("O endpoint /me/accounts não retornou páginas ou deu erro. Tentando endpoint alternativo /{user-id}/accounts...");
         if (fbUserId) {
-          window.FB.api(`/${fbUserId}/accounts`, { fields: 'id,name,access_token', limit: 100 }, function(altResponse) {
+          window.FB.api(`/${fbUserId}/accounts`, { access_token: finalAccessToken, fields: 'id,name,access_token', limit: 100 }, function(altResponse) {
             console.log(`Resposta da chamada /${fbUserId}/accounts:`, altResponse);
             if (altResponse && !altResponse.error && altResponse.data) {
               setFbPages(altResponse.data);
