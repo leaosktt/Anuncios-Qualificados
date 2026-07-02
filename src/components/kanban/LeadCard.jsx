@@ -93,8 +93,8 @@ const LeadCard = ({ lead, isOverlay, onDelete, onMove, showMovePrev, showMoveNex
   };
 
   const isMetaLead = lead.company === 'Meta Ads';
-  const displayTitle = isMetaLead ? lead.name : (lead.company || 'Sem empresa');
-  const displaySubtitle = isMetaLead ? null : lead.name;
+  const displayTitle = lead.name || 'Sem nome';
+  const displaySubtitle = isMetaLead ? null : (lead.company || 'Sem empresa');
 
   return (
     <div

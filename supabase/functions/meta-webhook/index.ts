@@ -47,7 +47,7 @@ serve(async (req) => {
           }
 
           const leadRes = await fetch(
-            `https://graph.facebook.com/v25.0/${leadgenId}?fields=field_data,created_time&access_token=${integration.access_token}`
+            `https://graph.facebook.com/v20.0/${leadgenId}?fields=field_data,created_time&access_token=${integration.access_token}`
           )
           const leadData = await leadRes.json()
           console.log("Lead data from Meta:", JSON.stringify(leadData))
