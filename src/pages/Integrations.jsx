@@ -6,13 +6,19 @@ import styles from './Pages.module.css';
 
 const Integrations = () => {
   const { user } = useAuth();
-  const [activeIntegration, setActiveIntegration] = useState(null);
+  const [activeIntegrations, setActiveIntegrations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fbPages, setFbPages] = useState([]);
+  const [fbForms, setFbForms] = useState([]);
+  const [selectedPage, setSelectedPage] = useState(null);
+  
   const [isSelectingPage, setIsSelectingPage] = useState(false);
+  const [isSelectingForm, setIsSelectingForm] = useState(false);
   const [isLoginInProgress, setIsLoginInProgress] = useState(false);
+  
   const [manualToken, setManualToken] = useState('');
   const [manualPageId, setManualPageId] = useState('');
+  const [manualFormId, setManualFormId] = useState('');
 
   useEffect(() => {
     checkActiveIntegration();
@@ -24,11 +30,10 @@ const Integrations = () => {
       const { data, error } = await supabase
         .from('meta_integrations')
         .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
+        .eq('user_id', user.id);
         
       if (data) {
-        setActiveIntegration(data);
+        setActiveIntegrations(data);
       }
     } catch (error) {
       console.error("Erro ao buscar integracao:", error);
@@ -53,9 +58,6 @@ const Integrations = () => {
       setIsLoginInProgress(false);
       console.log("Resposta completa do FB.login:", response);
       if (response.authResponse) {
-        console.log("FB User ID retornado pelo Login:", response.authResponse.userID);
-        console.log("Token de Acesso (User Token) Retornado pelo Login do Facebook:", response.authResponse.accessToken);
-        console.log("Escopos garantidos pelo usuário (grantedScopes):", response.authResponse.grantedScopes);
         fetchUserPages(response.authResponse.accessToken, response.authResponse.userID);
       } else {
         console.log('Usuário cancelou o login ou não autorizou totalmente.');
@@ -66,50 +68,36 @@ const Integrations = () => {
   const fetchUserPages = async (accessToken, fbUserId) => {
     let finalAccessToken = accessToken;
     
-    // Trocar token de curto prazo por token de longo prazo (long-lived token)
     try {
       const appId = import.meta.env.VITE_META_APP_ID;
       const appSecret = import.meta.env.VITE_META_APP_SECRET;
       
       if (appId && appSecret) {
-        console.log("Trocando token de curto prazo por um de longo prazo...");
         const response = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${accessToken}`);
         const data = await response.json();
         
         if (data.access_token) {
-          console.log("Token de longo prazo gerado com sucesso!");
           finalAccessToken = data.access_token;
-        } else {
-          console.warn("Nao foi possivel gerar token longo, usando o normal:", data.error);
         }
-      } else {
-        console.warn("VITE_META_APP_ID ou VITE_META_APP_SECRET nao definidos. Usando token de curto prazo.");
       }
     } catch (err) {
       console.error("Erro na troca de token:", err);
     }
 
     window.FB.api('/me/accounts', { access_token: finalAccessToken, fields: 'id,name,access_token', limit: 100 }, function(response) {
-      console.log(`Resposta da chamada /me/accounts:`, response);
       if (response && !response.error && response.data && response.data.length > 0) {
         setFbPages(response.data);
         setIsSelectingPage(true);
       } else {
-        console.log("O endpoint /me/accounts não retornou páginas ou deu erro. Tentando endpoint alternativo /{user-id}/accounts...");
         if (fbUserId) {
           window.FB.api(`/${fbUserId}/accounts`, { access_token: finalAccessToken, fields: 'id,name,access_token', limit: 100 }, function(altResponse) {
-            console.log(`Resposta da chamada /${fbUserId}/accounts:`, altResponse);
             if (altResponse && !altResponse.error && altResponse.data) {
               setFbPages(altResponse.data);
               setIsSelectingPage(true);
             } else {
-              console.error("Erro no endpoint alternativo:", altResponse?.error);
               alert("Não foi possível carregar as páginas do Facebook.");
             }
           });
-        } else {
-          console.error("Erro ao buscar páginas e sem userID para endpoint alternativo.");
-          alert("Não foi possível carregar as páginas do Facebook.");
         }
       }
     });
@@ -117,43 +105,53 @@ const Integrations = () => {
 
   const handleSelectPage = async (page) => {
     if (!user) return;
+    setSelectedPage(page);
+    
     try {
-      // 1. Assinar a página para receber webhooks de leadgen
-      try {
-        await new Promise((resolve, reject) => {
-          window.FB.api(
-            `/${page.id}/subscribed_apps`,
-            'POST',
-            {
-              subscribed_fields: ['leadgen'],
-              access_token: page.access_token
-            },
-            function(response) {
-              if (response && !response.error) {
-                console.log("App successfully subscribed to page webhooks!", response);
-                resolve(response);
-              } else {
-                console.error("Error subscribing app to page:", response?.error);
-                reject(response?.error);
-              }
-            }
-          );
-        });
-      } catch (fbError) {
-        console.warn("Aviso: Falha ao assinar webhooks no Facebook. Salvando no banco mesmo assim...", fbError);
-        // Não jogamos o erro pra frente (throw) para permitir que o app salve a integração.
+      await new Promise((resolve, reject) => {
+        window.FB.api(
+          `/${page.id}/subscribed_apps`,
+          'POST',
+          { subscribed_fields: ['leadgen'], access_token: page.access_token },
+          function(response) {
+            if (response && !response.error) resolve(response);
+            else reject(response?.error);
+          }
+        );
+      });
+    } catch (fbError) {
+      console.warn("Aviso: Falha ao assinar webhooks no Facebook.", fbError);
+    }
+
+    // Buscar os formulários dessa página
+    window.FB.api(`/${page.id}/leadgen_forms`, { access_token: page.access_token, fields: 'id,name' }, function(response) {
+      if (response && !response.error && response.data) {
+        setFbForms(response.data);
+      } else {
+        setFbForms([]);
       }
+      setIsSelectingPage(false);
+      setIsSelectingForm(true);
+    });
+  };
 
-      // 2. Salvar integração no banco de dados
-      const integrationData = {
-        user_id: user.id,
-        page_id: page.id,
-        page_name: page.name,
-        access_token: page.access_token
-      };
+  const handleSelectForm = async (form) => {
+    if (!user || !selectedPage) return;
 
-      // Limpar integrações antigas para evitar duplicidade
-      await supabase.from('meta_integrations').delete().eq('user_id', user.id);
+    const integrationData = {
+      user_id: user.id,
+      page_id: selectedPage.id,
+      page_name: selectedPage.name,
+      access_token: selectedPage.access_token,
+      form_id: form ? form.id : null,
+      form_name: form ? form.name : null
+    };
+
+    try {
+      // Remover duplicatas exatas para evitar erro
+      let query = supabase.from('meta_integrations').delete().eq('user_id', user.id).eq('page_id', selectedPage.id);
+      if (form) { query = query.eq('form_id', form.id); } else { query = query.is('form_id', null); }
+      await query;
 
       const { data, error } = await supabase
         .from('meta_integrations')
@@ -163,11 +161,12 @@ const Integrations = () => {
 
       if (error) throw error;
 
-      setActiveIntegration(data);
-      setIsSelectingPage(false);
+      setActiveIntegrations(prev => [...prev, data]);
+      setIsSelectingForm(false);
+      setSelectedPage(null);
     } catch (error) {
-      console.error("Erro ao conectar página e salvar integração:", error);
-      alert("Erro ao conectar a página e salvar no banco. Verifique o console.");
+      console.error("Erro ao salvar integração:", error);
+      alert("Erro ao conectar o formulário e salvar no banco.");
     }
   };
 
@@ -176,36 +175,28 @@ const Integrations = () => {
     try {
       const pageId = manualPageId.trim();
       const token = manualToken.trim();
+      const formId = manualFormId.trim() || null;
 
-      // 1. Tentar assinar o webhook automaticamente usando o token manual
       try {
-        const response = await fetch(`https://graph.facebook.com/v19.0/${pageId}/subscribed_apps`, {
+        await fetch(`https://graph.facebook.com/v19.0/${pageId}/subscribed_apps`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            subscribed_fields: ['leadgen'],
-            access_token: token
-          })
+          body: JSON.stringify({ subscribed_fields: ['leadgen'], access_token: token })
         });
-        const data = await response.json();
-        if (data.success) {
-          console.log("Assinatura de Webhook realizada com sucesso via Token Manual!");
-        } else {
-          console.warn("Aviso ao assinar webhook manualmente:", data.error);
-        }
-      } catch (err) {
-        console.warn("Erro ao tentar assinar webhook via fetch:", err);
-      }
+      } catch (err) {}
 
       const integrationData = {
         user_id: user.id,
         page_id: pageId,
         page_name: 'Conexão Manual',
-        access_token: token
+        access_token: token,
+        form_id: formId,
+        form_name: formId ? 'Formulário Manual' : null
       };
 
-      // Limpar integrações antigas para evitar duplicidade
-      await supabase.from('meta_integrations').delete().eq('user_id', user.id);
+      let query = supabase.from('meta_integrations').delete().eq('user_id', user.id).eq('page_id', pageId);
+      if (formId) { query = query.eq('form_id', formId); } else { query = query.is('form_id', null); }
+      await query;
 
       const { data, error } = await supabase
         .from('meta_integrations')
@@ -215,29 +206,26 @@ const Integrations = () => {
 
       if (error) throw error;
 
-      setActiveIntegration(data);
+      setActiveIntegrations(prev => [...prev, data]);
       setManualToken('');
       setManualPageId('');
+      setManualFormId('');
     } catch (error) {
       console.error("Erro ao salvar integração manual:", error);
       alert("Erro ao salvar o token manualmente.");
     }
   };
 
-  const handleDisconnect = async () => {
-    if (!activeIntegration || !user) return;
-    if (window.confirm("Tem certeza que deseja desconectar a integração com o Meta Ads?")) {
+  const handleDisconnect = async (id) => {
+    if (!user) return;
+    if (window.confirm("Tem certeza que deseja desconectar esta integração?")) {
       try {
         await supabase
           .from('meta_integrations')
           .delete()
-          .eq('id', activeIntegration.id);
-        setActiveIntegration(null);
-        if (window.FB) {
-          window.FB.logout(() => {
-            console.log("Usuário deslogado do Facebook com sucesso.");
-          });
-        }
+          .eq('id', id);
+          
+        setActiveIntegrations(prev => prev.filter(i => i.id !== id));
       } catch (error) {
         console.error("Erro ao desconectar:", error);
       }
@@ -272,89 +260,130 @@ const Integrations = () => {
             <div style={{ display: 'flex', justifyContent: 'center', padding: '12px' }}>
               <Loader2 className={styles.spin} size={24} color="#1877F2" />
             </div>
-          ) : activeIntegration ? (
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#10b981', fontWeight: 500, padding: '12px', backgroundColor: '#d1fae5', borderRadius: '8px', marginBottom: '12px' }}>
-                <CheckCircle size={20} />
-                <span>Conectado ✓</span>
-              </div>
-              <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '16px', padding: '0 4px' }}>
-                <strong>Página:</strong> {activeIntegration.page_name}
-              </div>
-              <button 
-                onClick={handleDisconnect}
-                style={{ width: '100%', padding: '10px', backgroundColor: 'transparent', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
-              >
-                Desconectar
-              </button>
-            </div>
-          ) : isSelectingPage ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <h4 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>Selecione a página:</h4>
-              {fbPages.length > 0 ? (
-                fbPages.map(page => (
-                  <button 
-                    key={page.id}
-                    onClick={() => handleSelectPage(page)}
-                    style={{ padding: '12px', textAlign: 'left', backgroundColor: 'var(--bg-app)', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                    onMouseOver={(e) => e.currentTarget.style.borderColor = '#1877F2'}
-                    onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
-                  >
-                    <span style={{ fontWeight: 500 }}>{page.name}</span>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Selecionar</span>
-                  </button>
-                ))
-              ) : (
-                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Nenhuma página encontrada na sua conta.</p>
-              )}
-              <button 
-                onClick={() => setIsSelectingPage(false)}
-                style={{ width: '100%', padding: '10px', marginTop: '8px', backgroundColor: 'transparent', color: 'var(--text-secondary)', border: 'none', cursor: 'pointer' }}
-              >
-                Cancelar
-              </button>
-            </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <button 
-                onClick={handleFacebookConnect}
-                style={{ width: '100%', padding: '12px', backgroundColor: '#1877F2', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer', transition: 'all 0.2s' }}
-                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#166fe5'}
-                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#1877F2'}
-              >
-                <LinkIcon size={18} />
-                Conectar Facebook
-              </button>
+            <>
+              {activeIntegrations.length > 0 && (
+                <div style={{ marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>Integrações Ativas</h4>
+                  {activeIntegrations.map((int) => (
+                    <div key={int.id} style={{ display: 'flex', flexDirection: 'column', padding: '12px', backgroundColor: '#d1fae5', border: '1px solid #10b981', borderRadius: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#047857', fontWeight: 600, marginBottom: '8px' }}>
+                        <CheckCircle size={18} /> Conectado
+                      </div>
+                      <div style={{ fontSize: '0.85rem', color: '#065f46', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span><strong>Página:</strong> {int.page_name}</span>
+                        <span><strong>Formulário:</strong> {int.form_name || 'Todos os formulários'}</span>
+                      </div>
+                      <button 
+                        onClick={() => handleDisconnect(int.id)}
+                        style={{ marginTop: '12px', width: '100%', padding: '8px', backgroundColor: 'transparent', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', fontSize: '0.85rem' }}
+                      >
+                        Desconectar
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
 
-              <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
-                <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px' }}>Conexão manual</h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <input
-                    type="text"
-                    placeholder="Page Access Token"
-                    value={manualToken}
-                    onChange={(e) => setManualToken(e.target.value)}
-                    style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-app)', color: 'var(--text-primary)', fontSize: '0.9rem' }}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Page ID"
-                    value={manualPageId}
-                    onChange={(e) => setManualPageId(e.target.value)}
-                    style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-app)', color: 'var(--text-primary)', fontSize: '0.9rem' }}
-                  />
-                  <button
-                    onClick={handleManualConnect}
-                    disabled={!manualToken || !manualPageId}
-                    style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-app)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: '8px', fontWeight: 600, cursor: (!manualToken || !manualPageId) ? 'not-allowed' : 'pointer', opacity: (!manualToken || !manualPageId) ? 0.5 : 1 }}
-                    onMouseOver={(e) => { if (manualToken && manualPageId) e.currentTarget.style.backgroundColor = 'var(--border-color)' }}
-                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-app)'}
-                  >
-                    Salvar token manualmente
+              {isSelectingPage ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>Selecione a página:</h4>
+                  {fbPages.length > 0 ? (
+                    fbPages.map(page => (
+                      <button 
+                        key={page.id}
+                        onClick={() => handleSelectPage(page)}
+                        style={{ padding: '12px', textAlign: 'left', backgroundColor: 'var(--bg-app)', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                      >
+                        <span style={{ fontWeight: 500 }}>{page.name}</span>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Selecionar</span>
+                      </button>
+                    ))
+                  ) : (
+                    <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Nenhuma página encontrada na sua conta.</p>
+                  )}
+                  <button onClick={() => setIsSelectingPage(false)} style={{ padding: '10px', marginTop: '8px', backgroundColor: 'transparent', color: 'var(--text-secondary)', border: 'none', cursor: 'pointer' }}>
+                    Cancelar
                   </button>
                 </div>
-              </div>
-            </div>
+              ) : isSelectingForm ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>Selecione o Formulário:</h4>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Escolha qual formulário conectar para a página <strong>{selectedPage?.name}</strong>.</p>
+                  
+                  <button 
+                    onClick={() => handleSelectForm(null)}
+                    style={{ padding: '12px', textAlign: 'left', backgroundColor: '#ebf4ff', border: '1px solid #1877F2', borderRadius: '8px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                  >
+                    <span style={{ fontWeight: 600, color: '#1877F2' }}>Todos os formulários</span>
+                    <span style={{ fontSize: '0.8rem', color: '#1877F2' }}>Selecionar</span>
+                  </button>
+
+                  {fbForms.length > 0 ? (
+                    fbForms.map(form => (
+                      <button 
+                        key={form.id}
+                        onClick={() => handleSelectForm(form)}
+                        style={{ padding: '12px', textAlign: 'left', backgroundColor: 'var(--bg-app)', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                      >
+                        <span style={{ fontWeight: 500 }}>{form.name}</span>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Selecionar</span>
+                      </button>
+                    ))
+                  ) : (
+                    <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Nenhum formulário específico encontrado.</p>
+                  )}
+                  <button onClick={() => setIsSelectingForm(false)} style={{ padding: '10px', marginTop: '8px', backgroundColor: 'transparent', color: 'var(--text-secondary)', border: 'none', cursor: 'pointer' }}>
+                    Cancelar
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>Adicionar Nova Integração</h4>
+                  <button 
+                    onClick={handleFacebookConnect}
+                    style={{ width: '100%', padding: '12px', backgroundColor: '#1877F2', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer' }}
+                  >
+                    <LinkIcon size={18} />
+                    Conectar Facebook
+                  </button>
+
+                  <div style={{ borderTop: '1px dashed var(--border-color)', paddingTop: '16px' }}>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px' }}>Conexão manual avançada</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <input
+                        type="text"
+                        placeholder="Page Access Token"
+                        value={manualToken}
+                        onChange={(e) => setManualToken(e.target.value)}
+                        style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-app)', color: 'var(--text-primary)', fontSize: '0.9rem' }}
+                      />
+                      <input
+                        type="text"
+                        placeholder="Page ID"
+                        value={manualPageId}
+                        onChange={(e) => setManualPageId(e.target.value)}
+                        style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-app)', color: 'var(--text-primary)', fontSize: '0.9rem' }}
+                      />
+                      <input
+                        type="text"
+                        placeholder="Form ID (Opcional - deixe vazio p/ todos)"
+                        value={manualFormId}
+                        onChange={(e) => setManualFormId(e.target.value)}
+                        style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-app)', color: 'var(--text-primary)', fontSize: '0.9rem' }}
+                      />
+                      <button
+                        onClick={handleManualConnect}
+                        disabled={!manualToken || !manualPageId}
+                        style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-app)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: '8px', fontWeight: 600, cursor: (!manualToken || !manualPageId) ? 'not-allowed' : 'pointer', opacity: (!manualToken || !manualPageId) ? 0.5 : 1 }}
+                      >
+                        Salvar token manualmente
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

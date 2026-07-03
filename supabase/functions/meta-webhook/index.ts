@@ -31,23 +31,40 @@ serve(async (req) => {
         if (change.field === "leadgen") {
           const pageId = change.value.page_id
           const leadgenId = change.value.leadgen_id
-          console.log("Page ID:", pageId, "Leadgen ID:", leadgenId)
+          const formId = change.value.form_id
+          console.log("Page ID:", pageId, "Form ID:", formId, "Leadgen ID:", leadgenId)
 
-          const { data: integration, error: intError } = await supabase
+          // Buscar integrações que correspondem ao page_id
+          const { data: allIntegrations, error: intError } = await supabase
             .from("meta_integrations")
-            .select("access_token, user_id")
+            .select("access_token, user_id, form_id")
             .eq("page_id", pageId)
-            .single()
 
-          console.log("Integration:", JSON.stringify(integration), "Error:", JSON.stringify(intError))
+          console.log("All Integrations found:", JSON.stringify(allIntegrations), "Error:", JSON.stringify(intError))
 
-          if (!integration) {
+          if (!allIntegrations || allIntegrations.length === 0) {
             console.log("Nenhuma integração encontrada para page_id:", pageId)
             continue
           }
 
+          // Filtrar integrações aplicáveis:
+          // 1. Integrações que correspondem EXATAMENTE ao form_id
+          // 2. Integrações "catch-all" onde form_id é nulo ou vazio
+          let targetIntegrations = allIntegrations.filter(i => i.form_id === formId)
+          if (targetIntegrations.length === 0) {
+            targetIntegrations = allIntegrations.filter(i => !i.form_id)
+          }
+
+          if (targetIntegrations.length === 0) {
+             console.log("Nenhuma integração aplicável encontrada para o form_id:", formId)
+             continue
+          }
+
+          // Usar o token da primeira integração aplicável para buscar os dados do lead
+          const accessToken = targetIntegrations[0].access_token
+
           const leadRes = await fetch(
-            `https://graph.facebook.com/v20.0/${leadgenId}?fields=field_data,created_time&access_token=${integration.access_token}`
+            `https://graph.facebook.com/v20.0/${leadgenId}?fields=field_data,created_time&access_token=${accessToken}`
           )
           const leadData = await leadRes.json()
           console.log("Lead data from Meta:", JSON.stringify(leadData))
@@ -68,18 +85,20 @@ serve(async (req) => {
             if (field.name === "phone_number" || field.name === "phone") contact = value
           }
 
-          const { error: insertError } = await supabase.from("leads").insert({
-            name,
-            company: "Meta Ads",
-            contact,
-            column_id: "col-1",
-            priority: "medium",
-            tags: ["meta-ads"],
-            form_responses: formResponses,
-            user_id: integration.user_id
-          })
-
-          console.log("Insert error:", JSON.stringify(insertError))
+          // Inserir um lead para CADA integração aplicável
+          for (const integration of targetIntegrations) {
+            const { error: insertError } = await supabase.from("leads").insert({
+              name,
+              company: "Meta Ads",
+              contact,
+              column_id: "col-1",
+              priority: "medium",
+              tags: ["meta-ads"],
+              form_responses: formResponses,
+              user_id: integration.user_id
+            })
+            console.log(`Insert result for user ${integration.user_id}:`, JSON.stringify(insertError))
+          }
         }
       }
     }
