@@ -74,15 +74,48 @@ serve(async (req) => {
             continue
           }
 
-          let name = "Lead Meta Ads"
+          let firstName = ""
+          let lastName = ""
+          let foundName = ""
           let contact = ""
           const formResponses: Record<string, string> = {}
 
           for (const field of leadData.field_data) {
             const value = field.values?.[0] ?? ""
             formResponses[field.name] = value
-            if (field.name === "full_name" || field.name === "name") name = value
-            if (field.name === "phone_number" || field.name === "phone") contact = value
+            
+            const fieldNameLower = field.name.toLowerCase()
+            
+            if (fieldNameLower === "first_name") {
+               firstName = value
+            } else if (fieldNameLower === "last_name") {
+               lastName = value
+            } else if (
+              fieldNameLower === "full_name" || 
+              fieldNameLower === "name" ||
+              fieldNameLower.includes("nome")
+            ) {
+              foundName = value
+            }
+            
+            if (
+              fieldNameLower === "phone_number" || 
+              fieldNameLower === "phone" || 
+              fieldNameLower.includes("telefone") ||
+              fieldNameLower.includes("celular") ||
+              fieldNameLower.includes("whatsapp") ||
+              fieldNameLower.includes("contato")
+            ) {
+              contact = value
+            }
+          }
+
+          let name = foundName
+          if (!name && (firstName || lastName)) {
+            name = `${firstName} ${lastName}`.trim()
+          }
+          if (!name) {
+            name = "Lead Meta Ads"
           }
 
           // Inserir um lead para CADA integração aplicável
