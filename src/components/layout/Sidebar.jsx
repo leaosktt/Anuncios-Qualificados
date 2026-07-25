@@ -14,8 +14,8 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const navItems = [
     { name: 'Início', path: '/dashboard', icon: <LayoutDashboard size={20} /> },
-    { name: 'Métricas', path: '/metrics', icon: <BarChart3 size={20} /> },
     { name: 'Leads', path: '/leads', icon: <List size={20} /> },
+    { name: 'Métricas', path: '/metrics', icon: <BarChart3 size={20} /> },
     { name: 'Tarefas', path: '/tasks', icon: <CheckSquare size={20} /> },
     { name: 'Clientes', path: '/clients', icon: <Users size={20} /> },
     { name: 'Projetos', path: '/projects', icon: <FolderKanban size={20} /> },
