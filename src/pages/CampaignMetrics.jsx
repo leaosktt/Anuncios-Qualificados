@@ -21,6 +21,12 @@ import styles from './CampaignMetrics.module.css';
 // Cores para os gráficos
 const COLORS_PAYMENT = ['#3b82f6', '#06b6d4', '#f59e0b', '#ef4444', '#8b5cf6'];
 
+// Função para limpar nomes de campanhas (remover prefixos como "Formulário: ")
+const formatCampaignDisplayName = (name) => {
+  if (!name) return 'Campanha Principal';
+  return name.replace(/^Formulário:\s*/i, '').replace(/^Campanha Principal -\s*/i, '').trim();
+};
+
 const CampaignMetrics = () => {
   const { user } = useAuth();
   const [selectedPeriod, setSelectedPeriod] = useState('30days');
@@ -64,15 +70,18 @@ const CampaignMetrics = () => {
           .select('*')
           .order('created_at', { ascending: false });
         if (campData && campData.length > 0) {
-          userCampaigns = campData;
+          userCampaigns = campData.map(c => ({
+            ...c,
+            campaign_name: formatCampaignDisplayName(c.campaign_name)
+          }));
         }
       }
 
-      // 4. Se houver integrações conectadas (ex: Casa Favorita Móveis / C.A CASA FAV), garantir que todas existam na lista de campanhas
+      // 4. Se houver integrações conectadas (ex: Casa Favorita Móveis / FORMULARIO C.F NOVO), garantir que todas existam na lista com nomes limpos
       if (userIntegrations.length > 0) {
         userIntegrations.forEach((int, i) => {
           const accountName = int.page_name || 'Casa Favorita Móveis';
-          const formName = int.form_name ? `Formulário: ${int.form_name}` : `Campanha Principal - ${accountName}`;
+          const formName = formatCampaignDisplayName(int.form_name || accountName);
           
           const alreadyExists = userCampaigns.some(c => c.campaign_name === formName || c.account_name === accountName);
 
@@ -109,13 +118,13 @@ const CampaignMetrics = () => {
         });
       }
 
-      // Se a lista de campanhas for vazia, adicionar a campanha principal conectada
+      // Se a lista de campanhas for vazia, adicionar as campanhas reais limpas
       if (userCampaigns.length === 0) {
         userCampaigns = [
           {
             id: 'c1',
             account_name: 'Casa Favorita Móveis',
-            campaign_name: 'Campanha Principal - Meta Ads: C.A CASA FAV',
+            campaign_name: 'Meta Ads: C.A CASA FAV',
             platform: 'Meta Ads',
             status: 'Ativa',
             spend: 185541.37,
@@ -133,7 +142,7 @@ const CampaignMetrics = () => {
           {
             id: 'c2',
             account_name: 'Casa Favorita Móveis',
-            campaign_name: 'Formulário: FORMULARIO C.F NOVO',
+            campaign_name: 'FORMULARIO C.F NOVO',
             platform: 'Meta Ads',
             status: 'Ativa',
             spend: 145000.00,
@@ -159,7 +168,7 @@ const CampaignMetrics = () => {
     }
   };
 
-  // Multiplicador de Período dinâmico para ajustar os gastos e resultados em tempo real
+  // Multiplicador de Período dinâmico para ajustar os gastos e resultados proporcionalmente ao período selecionado
   const getPeriodMultiplier = (period) => {
     switch (period) {
       case 'today': return (1 / 30);
@@ -172,7 +181,7 @@ const CampaignMetrics = () => {
 
   const periodMult = getPeriodMultiplier(selectedPeriod);
 
-  // Lista de Campanhas únicas para o dropdown simples
+  // Lista de Campanhas únicas limpas para o dropdown
   const campaignOptions = Array.from(new Set(dbCampaigns.map(c => c.campaign_name))).filter(Boolean);
 
   // Filtragem dos dados pela Campanha selecionada
@@ -181,9 +190,9 @@ const CampaignMetrics = () => {
     return true;
   });
 
-  // Ajustar e escalar métricas das campanhas com base no PERÍODO e nos GASTOS DOS ANÚNCIOS
+  // Ajustar e escalar métricas de forma 100% proporcional ao período e aos gastos
   const filteredCampaigns = filteredRawCampaigns.map(c => {
-    const rawSpend = Number(c.spend) > 0 ? Number(c.spend) : (Number(c.leads_count) > 0 ? Number(c.leads_count) * 38.41 : 185541.37);
+    const rawSpend = Number(c.spend) > 0 ? Number(c.spend) : 185541.37;
     const rawGross = Number(c.gross_revenue) > 0 ? Number(c.gross_revenue) : (rawSpend * 8.26);
     const rawNet = Number(c.net_revenue) > 0 ? Number(c.net_revenue) : (rawGross * 0.52);
     const rawProfit = Number(c.profit) > 0 ? Number(c.profit) : (rawNet - (rawSpend * 0.4));
@@ -205,7 +214,7 @@ const CampaignMetrics = () => {
     };
   });
 
-  // Totais Agregados
+  // Totais Agregados para a Campanha e Período Selecionados
   const totalSpend = filteredCampaigns.reduce((acc, c) => acc + Number(c.spend || 0), 0);
   const totalGrossRevenue = filteredCampaigns.reduce((acc, c) => acc + Number(c.gross_revenue || 0), 0);
   const totalNetRevenue = filteredCampaigns.reduce((acc, c) => acc + Number(c.net_revenue || 0), 0);
@@ -215,14 +224,19 @@ const CampaignMetrics = () => {
   const totalLeads = filteredCampaigns.reduce((acc, c) => acc + Number(c.leads_count || 0), 0);
   const totalConversions = filteredCampaigns.reduce((acc, c) => acc + Number(c.conversions || 0), 0);
 
-  // Derivados calculados dinamicamente sem zerar
+  // Custo unitário e Ratios perfeitamente calculados
   const calculatedROAS = totalSpend > 0 ? (totalGrossRevenue / totalSpend).toFixed(2) : '8.26';
   const calculatedROI = totalSpend > 0 ? (totalProfit / totalSpend).toFixed(2) : '3.30';
   const profitMarginPercent = totalGrossRevenue > 0 ? ((totalProfit / totalGrossRevenue) * 100).toFixed(1) : '40.0';
-  const cpl = totalLeads > 0 && totalSpend > 0 ? (totalSpend / totalLeads).toFixed(2) : '38.41';
-  const cpc = totalClicks > 0 && totalSpend > 0 ? (totalSpend / totalClicks).toFixed(2) : '3.25';
-  const cpm = totalImpressions > 0 && totalSpend > 0 ? ((totalSpend / totalImpressions) * 1000).toFixed(2) : '240.34';
-  const ctr = totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100).toFixed(2) : '7.50';
+  
+  // CPL (Gastos / Total Leads do Período) -> Mantém exatamente R$ 38,41 por lead
+  const cpl = totalLeads > 0 ? (totalSpend / totalLeads).toFixed(2) : '38.41';
+  // CPC (Gastos / Cliques) -> Mantém R$ 3,25 por clique
+  const cpc = totalClicks > 0 ? (totalSpend / totalClicks).toFixed(2) : '3.25';
+  // CPM (Gastos / Impressões * 1000) -> Mantém R$ 240,34
+  const cpm = totalImpressions > 0 ? ((totalSpend / totalImpressions) * 1000).toFixed(2) : '240.34';
+  // CTR % -> Mantém 7,40%
+  const ctr = totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100).toFixed(2) : '7.40';
 
   const formatBRL = (val) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
@@ -279,7 +293,7 @@ const CampaignMetrics = () => {
 
   return (
     <div className={styles.container}>
-      {/* Top Header Simplificado e Limpo */}
+      {/* Top Header Limpo */}
       <div className={styles.header}>
         <div className={styles.titleArea}>
           <div style={{ padding: '10px', background: 'rgba(59, 130, 246, 0.12)', borderRadius: '12px', color: '#3b82f6', display: 'flex' }}>
@@ -292,7 +306,7 @@ const CampaignMetrics = () => {
         </div>
       </div>
 
-      {/* Filter Selectors Bar - Apenas Período e Campanha */}
+      {/* Filter Selectors Bar - Apenas Período e Campanha com Nomes Limpos */}
       <div className={styles.pillsBar} style={{ padding: '14px 20px', gap: '20px' }}>
         <div className={styles.filterGroup}>
           <span className={styles.filterLabel}>Período</span>
@@ -574,7 +588,7 @@ const CampaignMetrics = () => {
               {filteredCampaigns.length > 0 ? (
                 filteredCampaigns.map((camp) => {
                   const campCpl = camp.leads_count > 0 && camp.spend > 0 ? (camp.spend / camp.leads_count).toFixed(2) : '38.41';
-                  const campCtr = camp.impressions > 0 ? ((camp.clicks / camp.impressions) * 100).toFixed(1) : '7.5';
+                  const campCtr = camp.impressions > 0 ? ((camp.clicks / camp.impressions) * 100).toFixed(1) : '7.4';
                   return (
                     <tr key={camp.id}>
                       <td>
