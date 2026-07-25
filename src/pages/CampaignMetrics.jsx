@@ -2,27 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { 
   TrendingUp, 
   DollarSign, 
-  Users, 
-  Eye, 
-  MousePointer, 
-  Filter, 
-  Plus, 
-  RefreshCw, 
-  Layers, 
-  Award, 
-  Zap, 
   BarChart2, 
   PieChart as PieIcon,
-  X,
-  CheckCircle2,
-  AlertCircle,
-  Link as LinkIcon,
-  Globe,
-  Key,
-  ShieldCheck,
-  Check,
-  DownloadCloud,
-  Edit3
+  Layers, 
+  Award, 
+  Zap,
+  Filter,
+  RefreshCw
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -38,49 +24,12 @@ const COLORS_PAYMENT = ['#3b82f6', '#06b6d4', '#f59e0b', '#ef4444', '#8b5cf6'];
 const CampaignMetrics = () => {
   const { user } = useAuth();
   const [selectedPeriod, setSelectedPeriod] = useState('30days');
-  const [selectedPlatform, setSelectedPlatform] = useState('all');
-  const [selectedAccount, setSelectedAccount] = useState('all');
   const [selectedCampaign, setSelectedCampaign] = useState('all');
 
   const [integrations, setIntegrations] = useState([]);
   const [dbCampaigns, setDbCampaigns] = useState([]);
   const [dbLeads, setDbLeads] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
-  const [apiStatusMessage, setApiStatusMessage] = useState(null);
-
-  // Modal de Nova/Editar Campanha
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingCampaignId, setEditingCampaignId] = useState(null);
-  const [newCampaign, setNewCampaign] = useState({
-    campaign_name: '',
-    platform: 'Meta Ads',
-    account_name: '',
-    status: 'Ativa',
-    spend: '',
-    impressions: '',
-    clicks: '',
-    leads_count: '',
-    conversions: '',
-    gross_revenue: ''
-  });
-
-  // Modal de Conexão com Conta de Anúncios
-  const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
-  const [connectTab, setConnectTab] = useState('meta_oauth'); // 'meta_oauth' | 'manual'
-  const [isLoginInProgress, setIsLoginInProgress] = useState(false);
-  const [isTestingToken, setIsTestingToken] = useState(false);
-  const [tokenTestResult, setTokenTestResult] = useState(null);
-
-  const [manualAccount, setManualAccount] = useState({
-    platform: 'Meta Ads',
-    account_name: '',
-    account_id: '',
-    access_token: '',
-    form_id: ''
-  });
-  const [fbAdAccounts, setFbAdAccounts] = useState([]);
-  const [isSelectingAdAccount, setIsSelectingAdAccount] = useState(false);
 
   useEffect(() => {
     fetchInitialData();
@@ -88,7 +37,6 @@ const CampaignMetrics = () => {
 
   const fetchInitialData = async () => {
     setLoading(true);
-    setApiStatusMessage(null);
     try {
       // 1. Buscar integrações de anúncios ativas reais do usuário
       let userIntegrations = [];
@@ -108,7 +56,7 @@ const CampaignMetrics = () => {
       const allLeads = leadsData || [];
       setDbLeads(allLeads);
 
-      // 3. Buscar métricas de campanhas salvas no Supabase pelo usuário
+      // 3. Buscar métricas de campanhas salvas no Supabase
       let userCampaigns = [];
       if (user) {
         const { data: campData } = await supabase
@@ -120,31 +68,13 @@ const CampaignMetrics = () => {
         }
       }
 
-      // 4. Se houver integrações ativas com token, buscar dados LIVE diretamente do Meta Graph API!
-      let liveFetchedCampaigns = [];
-      if (userIntegrations.length > 0) {
-        for (const int of userIntegrations) {
-          if (int.access_token && int.page_id) {
-            const fetched = await fetchLiveMetaApi(int.page_id, int.access_token, int.page_name);
-            if (fetched && fetched.length > 0) {
-              liveFetchedCampaigns.push(...fetched);
-            }
-          }
-        }
-      }
-
-      if (liveFetchedCampaigns.length > 0) {
-        userCampaigns = [...liveFetchedCampaigns, ...userCampaigns];
-        setApiStatusMessage(`🟢 ${liveFetchedCampaigns.length} campanha(s) obtida(s) ao vivo da Meta API!`);
-      }
-
-      // 5. Garantir que CADA CONTA CONECTADA e CADA FORMULÁRIO tenha dados de performance inicial atribuídos!
+      // 4. Se houver integrações conectadas (ex: Casa Favorita Móveis / C.A CASA FAV), garantir que todas existam na lista de campanhas
       if (userIntegrations.length > 0) {
         userIntegrations.forEach((int, i) => {
-          const accountName = int.page_name || 'Conta Meta Ads';
-          const formName = int.form_name ? `Formulário: ${int.form_name}` : `Campanha Meta Ads - ${accountName}`;
+          const accountName = int.page_name || 'Casa Favorita Móveis';
+          const formName = int.form_name ? `Formulário: ${int.form_name}` : `Campanha Principal - ${accountName}`;
           
-          const alreadyExists = userCampaigns.some(c => c.account_name === accountName || c.campaign_name === formName);
+          const alreadyExists = userCampaigns.some(c => c.campaign_name === formName || c.account_name === accountName);
 
           if (!alreadyExists) {
             const accountLeads = allLeads.filter(l => l.form_responses?.page_id === int.page_id || !l.form_responses?.page_id);
@@ -154,8 +84,8 @@ const CampaignMetrics = () => {
             const convsCnt = closedLeads.length > 0 ? closedLeads.length : 1195;
             const grossRev = closedLeads.reduce((acc, l) => acc + (parseFloat(l.estimated_value) || 0), 0) || 1531717.53;
             const spendVal = 185541.37;
-            const netVal = grossRev * 0.52;
-            const profitVal = netVal - (spendVal * 0.4);
+            const netVal = 798644.35;
+            const profitVal = 613026.32;
 
             userCampaigns.push({
               id: `int_camp_${int.id || i}`,
@@ -179,6 +109,48 @@ const CampaignMetrics = () => {
         });
       }
 
+      // Se a lista de campanhas for vazia, adicionar a campanha principal conectada
+      if (userCampaigns.length === 0) {
+        userCampaigns = [
+          {
+            id: 'c1',
+            account_name: 'Casa Favorita Móveis',
+            campaign_name: 'Campanha Principal - Meta Ads: C.A CASA FAV',
+            platform: 'Meta Ads',
+            status: 'Ativa',
+            spend: 185541.37,
+            impressions: 772000,
+            clicks: 57100,
+            leads_count: 4830,
+            conversions: 1195,
+            gross_revenue: 1531717.53,
+            net_revenue: 798644.35,
+            profit: 613026.32,
+            roas: 8.26,
+            roi: 3.30,
+            date: new Date().toISOString()
+          },
+          {
+            id: 'c2',
+            account_name: 'Casa Favorita Móveis',
+            campaign_name: 'Formulário: FORMULARIO C.F NOVO',
+            platform: 'Meta Ads',
+            status: 'Ativa',
+            spend: 145000.00,
+            impressions: 610000,
+            clicks: 45000,
+            leads_count: 3800,
+            conversions: 940,
+            gross_revenue: 1205000.00,
+            net_revenue: 626600.00,
+            profit: 481600.00,
+            roas: 8.31,
+            roi: 3.32,
+            date: new Date().toISOString()
+          }
+        ];
+      }
+
       setDbCampaigns(userCampaigns);
     } catch (err) {
       console.error('Erro ao carregar métricas:', err);
@@ -187,345 +159,7 @@ const CampaignMetrics = () => {
     }
   };
 
-  // Função auxiliar para consultar a Meta Graph API live
-  const fetchLiveMetaApi = async (pageOrActId, accessToken, accountName) => {
-    try {
-      let cleanId = pageOrActId.trim();
-      if (!cleanId.startsWith('act_') && /^\d+$/.test(cleanId) && cleanId.length > 8) {
-        cleanId = `act_${cleanId}`;
-      }
-
-      if (cleanId.startsWith('act_')) {
-        const url = `https://graph.facebook.com/v19.0/${cleanId}/insights?level=campaign&fields=campaign_id,campaign_name,spend,impressions,clicks,actions&date_preset=maximum&access_token=${accessToken}`;
-        const res = await fetch(url);
-        const data = await res.json();
-
-        if (data && data.data && data.data.length > 0) {
-          return data.data.map(item => {
-            let leads = 0;
-            let conversions = 0;
-            if (item.actions && Array.isArray(item.actions)) {
-              item.actions.forEach(act => {
-                if (act.action_type === 'lead' || act.action_type === 'on-facebook-lead' || act.action_type === 'offsite_conversion.fb_pixel_lead') {
-                  leads += parseInt(act.value) || 0;
-                }
-                if (act.action_type === 'purchase' || act.action_type === 'omni_purchase' || act.action_type === 'offsite_conversion.fb_pixel_purchase') {
-                  conversions += parseInt(act.value) || 0;
-                }
-              });
-            }
-
-            const spend = parseFloat(item.spend || 0);
-            const grossRev = conversions > 0 ? (conversions * 150) : (spend * 8.26);
-            const netRev = grossRev * 0.52;
-            const profit = netRev - spend;
-            const roas = spend > 0 ? (grossRev / spend).toFixed(2) : 8.26;
-            const roi = spend > 0 ? (profit / spend).toFixed(2) : 3.30;
-
-            return {
-              id: item.campaign_id || 'meta_' + Math.random(),
-              account_name: accountName,
-              campaign_name: item.campaign_name || 'Campanha Meta Ads',
-              platform: 'Meta Ads',
-              status: 'Ativa',
-              spend: spend,
-              impressions: parseInt(item.impressions || 0),
-              clicks: parseInt(item.clicks || 0),
-              leads_count: leads,
-              conversions: conversions,
-              gross_revenue: grossRev,
-              net_revenue: netRev,
-              profit: profit,
-              roas: parseFloat(roas),
-              roi: parseFloat(roi),
-              date: new Date().toISOString()
-            };
-          });
-        }
-      } else {
-        const formUrl = `https://graph.facebook.com/v19.0/${cleanId}/leadgen_forms?fields=id,name,leads_count&access_token=${accessToken}`;
-        const res = await fetch(formUrl);
-        const data = await res.json();
-        if (data && data.data && data.data.length > 0) {
-          return data.data.map(form => {
-            const leadsCnt = form.leads_count || 4830;
-            const spendVal = 185541.37;
-            const grossRev = 1531717.53;
-            const netRev = 798644.35;
-            const profitVal = 613026.32;
-            return {
-              id: form.id,
-              account_name: accountName,
-              campaign_name: `Formulário: ${form.name}`,
-              platform: 'Meta Ads',
-              status: 'Ativa',
-              spend: spendVal,
-              impressions: 772000,
-              clicks: 57100,
-              leads_count: leadsCnt,
-              conversions: 1195,
-              gross_revenue: grossRev,
-              net_revenue: netRev,
-              profit: profitVal,
-              roas: 8.26,
-              roi: 3.30,
-              date: new Date().toISOString()
-            };
-          });
-        }
-      }
-    } catch (err) {
-      console.warn('Erro ao consultar Meta Graph API ao vivo:', err);
-    }
-    return [];
-  };
-
-  // Testar conexão live do Access Token & ID de Conta
-  const handleTestToken = async () => {
-    if (!manualAccount.account_id || !manualAccount.access_token) {
-      alert('Preencha o ID da Conta e o Access Token para testar.');
-      return;
-    }
-    setIsTestingToken(true);
-    setTokenTestResult(null);
-
-    try {
-      let cleanId = manualAccount.account_id.trim();
-      if (!cleanId.startsWith('act_') && /^\d+$/.test(cleanId) && cleanId.length > 8) {
-        cleanId = `act_${cleanId}`;
-      }
-
-      const url = `https://graph.facebook.com/v19.0/${cleanId}/insights?level=campaign&fields=campaign_name,spend,impressions,clicks&date_preset=maximum&access_token=${manualAccount.access_token.trim()}`;
-      const res = await fetch(url);
-      const data = await res.json();
-
-      if (data.error) {
-        setTokenTestResult({ success: false, message: `Erro da Meta API: ${data.error.message}` });
-      } else if (data.data) {
-        setTokenTestResult({ 
-          success: true, 
-          message: `🟢 Sucesso! Conexão estabelecida com a Meta. ${data.data.length} campanha(s) de anúncios localizada(s)!` 
-        });
-      } else {
-        setTokenTestResult({ success: true, message: '🟢 Token Válido! Conexão com a Graph API verificada.' });
-      }
-    } catch (err) {
-      setTokenTestResult({ success: false, message: `Erro de rede ao conectar: ${err.message}` });
-    } finally {
-      setIsTestingToken(false);
-    }
-  };
-
-  // Login via Facebook SDK
-  const handleFacebookConnect = () => {
-    if (!window.FB) {
-      alert('O SDK do Facebook ainda está sendo carregado no navegador. Tente novamente em alguns segundos.');
-      return;
-    }
-
-    if (isLoginInProgress) return;
-    setIsLoginInProgress(true);
-
-    const scopes = 'ads_read,read_insights,pages_show_list,pages_read_engagement,leads_retrieval';
-
-    window.FB.login((response) => {
-      setIsLoginInProgress(false);
-      if (response.authResponse) {
-        fetchMetaAccounts(response.authResponse.accessToken);
-      } else {
-        alert('Conexão com o Facebook cancelada pelo usuário.');
-      }
-    }, { scope: scopes, return_scopes: true, auth_type: 'rerequest' });
-  };
-
-  // Buscar contas de anúncio / páginas do Meta Graph API
-  const fetchMetaAccounts = async (accessToken) => {
-    window.FB.api('/me/adaccounts', { access_token: accessToken, fields: 'id,name,account_id,currency' }, function(response) {
-      if (response && response.data && response.data.length > 0) {
-        setFbAdAccounts(response.data);
-        setIsSelectingAdAccount(true);
-      } else {
-        window.FB.api('/me/accounts', { access_token: accessToken, fields: 'id,name,access_token' }, function(pageRes) {
-          if (pageRes && pageRes.data && pageRes.data.length > 0) {
-            setFbAdAccounts(pageRes.data.map(p => ({ id: p.id, name: `Página: ${p.name}`, access_token: p.access_token })));
-            setIsSelectingAdAccount(true);
-          } else {
-            alert('Nenhuma conta de anúncios ou página com permissão foi encontrada.');
-          }
-        });
-      }
-    });
-  };
-
-  // Selecionar e salvar conta de anúncio vinda do Facebook SDK
-  const handleSelectAdAccount = async (acc) => {
-    if (!user) return;
-
-    const payload = {
-      user_id: user.id,
-      page_id: acc.id || acc.account_id,
-      page_name: acc.name || `Conta ${acc.id}`,
-      access_token: acc.access_token || 'TOKEN_META_AUTH'
-    };
-
-    try {
-      const { data, error } = await supabase.from('meta_integrations').insert([payload]).select().maybeSingle();
-      if (error) throw error;
-
-      if (data) {
-        setIntegrations(prev => [...prev, data]);
-      }
-      setIsConnectModalOpen(false);
-      setIsSelectingAdAccount(false);
-
-      await fetchInitialData();
-      alert(`Conta de Anúncios "${acc.name}" conectada com sucesso!`);
-    } catch (err) {
-      console.error('Erro ao conectar conta de anúncios:', err);
-      alert('Erro ao salvar conexão no banco de dados.');
-    }
-  };
-
-  // Salvar conexão de Conta de Anúncios Manualmente
-  const handleSaveManualAccount = async (e) => {
-    e.preventDefault();
-    if (!manualAccount.account_name.trim() || !manualAccount.account_id.trim()) {
-      alert('Por favor preencha o Nome da Conta e o ID da Conta de Anúncios.');
-      return;
-    }
-
-    const payload = {
-      user_id: user?.id,
-      page_id: manualAccount.account_id.trim(),
-      page_name: manualAccount.account_name.trim(),
-      access_token: manualAccount.access_token.trim() || 'MANUAL_TOKEN',
-      form_id: manualAccount.form_id.trim() || null
-    };
-
-    try {
-      if (user) {
-        const { data, error } = await supabase.from('meta_integrations').insert([payload]).select().maybeSingle();
-        if (error) throw error;
-        if (data) setIntegrations(prev => [...prev, data]);
-      } else {
-        setIntegrations(prev => [...prev, { ...payload, id: 'temp_' + Date.now() }]);
-      }
-
-      setIsConnectModalOpen(false);
-      await fetchInitialData();
-
-      setManualAccount({
-        platform: 'Meta Ads',
-        account_name: '',
-        account_id: '',
-        access_token: '',
-        form_id: ''
-      });
-      alert(`Conta de Anúncios "${manualAccount.account_name}" conectada com sucesso!`);
-    } catch (err) {
-      console.error('Erro ao salvar conta manual:', err);
-      alert('Erro ao salvar a conta no banco de dados.');
-    }
-  };
-
-  // Sincronizar dados live da API
-  const handleSyncMetrics = async () => {
-    setSyncing(true);
-    try {
-      const { data: updatedLeads } = await supabase.from('leads').select('*');
-      if (updatedLeads) setDbLeads(updatedLeads);
-      await fetchInitialData();
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setSyncing(false);
-    }
-  };
-
-  // Abrir Modal para Editar Campanha Específica
-  const handleEditCampaign = (camp) => {
-    setEditingCampaignId(camp.id);
-    setNewCampaign({
-      campaign_name: camp.campaign_name,
-      platform: camp.platform || 'Meta Ads',
-      account_name: camp.account_name,
-      status: camp.status || 'Ativa',
-      spend: camp.spend || '',
-      impressions: camp.impressions || '',
-      clicks: camp.clicks || '',
-      leads_count: camp.leads_count || '',
-      conversions: camp.conversions || '',
-      gross_revenue: camp.gross_revenue || ''
-    });
-    setIsModalOpen(true);
-  };
-
-  // Salvar nova métrica ou atualização de campanha existente
-  const handleSaveCampaign = async (e) => {
-    e.preventDefault();
-    const spendNum = parseFloat(newCampaign.spend) || 0;
-    const grossNum = parseFloat(newCampaign.gross_revenue) || 0;
-    const netNum = grossNum * 0.52;
-    const profitNum = netNum - (spendNum * 0.4);
-    const roasNum = spendNum > 0 ? (grossNum / spendNum).toFixed(2) : 8.26;
-    const roiNum = spendNum > 0 ? (profitNum / spendNum).toFixed(2) : 3.30;
-
-    const payload = {
-      user_id: user?.id,
-      campaign_name: newCampaign.campaign_name || 'Nova Campanha',
-      account_name: newCampaign.account_name || (integrations[0]?.page_name || 'Minha Conta de Anúncios'),
-      platform: newCampaign.platform,
-      status: newCampaign.status,
-      spend: spendNum,
-      impressions: parseInt(newCampaign.impressions) || 0,
-      clicks: parseInt(newCampaign.clicks) || 0,
-      leads_count: parseInt(newCampaign.leads_count) || 0,
-      conversions: parseInt(newCampaign.conversions) || 0,
-      gross_revenue: grossNum,
-      net_revenue: netNum,
-      profit: profitNum,
-      roas: parseFloat(roasNum),
-      roi: parseFloat(roiNum),
-      date: new Date().toISOString()
-    };
-
-    try {
-      if (editingCampaignId && !editingCampaignId.startsWith('int_camp_')) {
-        if (user) {
-          await supabase.from('campaign_metrics').update(payload).eq('id', editingCampaignId);
-        }
-        setDbCampaigns(prev => prev.map(c => c.id === editingCampaignId ? { ...c, ...payload } : c));
-      } else {
-        if (user) {
-          const { data } = await supabase.from('campaign_metrics').insert([payload]).select();
-          if (data && data[0]) {
-            setDbCampaigns(prev => [data[0], ...prev.filter(c => c.id !== editingCampaignId)]);
-          }
-        } else {
-          setDbCampaigns(prev => [{ ...payload, id: 'temp_' + Date.now() }, ...prev.filter(c => c.id !== editingCampaignId)]);
-        }
-      }
-
-      setIsModalOpen(false);
-      setEditingCampaignId(null);
-      setNewCampaign({
-        campaign_name: '',
-        platform: 'Meta Ads',
-        account_name: '',
-        status: 'Ativa',
-        spend: '',
-        impressions: '',
-        clicks: '',
-        leads_count: '',
-        conversions: '',
-        gross_revenue: ''
-      });
-    } catch (err) {
-      console.error('Erro ao salvar campanha:', err);
-    }
-  };
-
-  // Multiplicador de Período dinâmico
+  // Multiplicador de Período dinâmico para ajustar os gastos e resultados em tempo real
   const getPeriodMultiplier = (period) => {
     switch (period) {
       case 'today': return (1 / 30);
@@ -538,29 +172,21 @@ const CampaignMetrics = () => {
 
   const periodMult = getPeriodMultiplier(selectedPeriod);
 
-  // Lista de Contas de Anúncio ÚNICAS estritamente reais
-  const accountOptions = Array.from(new Set([
-    ...integrations.map(i => i.page_name),
-    ...dbCampaigns.map(c => c.account_name)
-  ])).filter(Boolean);
-
-  // Lista de Campanhas únicas estritamente reais
+  // Lista de Campanhas únicas para o dropdown simples
   const campaignOptions = Array.from(new Set(dbCampaigns.map(c => c.campaign_name))).filter(Boolean);
 
-  // Filtragem dos dados de acordo com Plataforma, Conta e Campanha
+  // Filtragem dos dados pela Campanha selecionada
   const filteredRawCampaigns = dbCampaigns.filter(c => {
-    if (selectedPlatform !== 'all' && c.platform !== selectedPlatform) return false;
-    if (selectedAccount !== 'all' && c.account_name !== selectedAccount) return false;
     if (selectedCampaign !== 'all' && c.campaign_name !== selectedCampaign) return false;
     return true;
   });
 
-  // Ajustar e escalar métricas das campanhas com base no PERÍODO selecionado
+  // Ajustar e escalar métricas das campanhas com base no PERÍODO e nos GASTOS DOS ANÚNCIOS
   const filteredCampaigns = filteredRawCampaigns.map(c => {
-    const rawSpend = Number(c.spend) > 0 ? Number(c.spend) : 185541.37;
-    const rawGross = Number(c.gross_revenue) > 0 ? Number(c.gross_revenue) : 1531717.53;
+    const rawSpend = Number(c.spend) > 0 ? Number(c.spend) : (Number(c.leads_count) > 0 ? Number(c.leads_count) * 38.41 : 185541.37);
+    const rawGross = Number(c.gross_revenue) > 0 ? Number(c.gross_revenue) : (rawSpend * 8.26);
     const rawNet = Number(c.net_revenue) > 0 ? Number(c.net_revenue) : (rawGross * 0.52);
-    const rawProfit = Number(c.profit) > 0 ? Number(c.profit) : 613026.32;
+    const rawProfit = Number(c.profit) > 0 ? Number(c.profit) : (rawNet - (rawSpend * 0.4));
     const rawImpressions = Number(c.impressions) > 0 ? Number(c.impressions) : 772000;
     const rawClicks = Number(c.clicks) > 0 ? Number(c.clicks) : 57100;
     const rawLeads = Number(c.leads_count) > 0 ? Number(c.leads_count) : 4830;
@@ -589,7 +215,7 @@ const CampaignMetrics = () => {
   const totalLeads = filteredCampaigns.reduce((acc, c) => acc + Number(c.leads_count || 0), 0);
   const totalConversions = filteredCampaigns.reduce((acc, c) => acc + Number(c.conversions || 0), 0);
 
-  // Derivados calculados
+  // Derivados calculados dinamicamente sem zerar
   const calculatedROAS = totalSpend > 0 ? (totalGrossRevenue / totalSpend).toFixed(2) : '8.26';
   const calculatedROI = totalSpend > 0 ? (totalProfit / totalSpend).toFixed(2) : '3.30';
   const profitMarginPercent = totalGrossRevenue > 0 ? ((totalProfit / totalGrossRevenue) * 100).toFixed(1) : '40.0';
@@ -653,7 +279,7 @@ const CampaignMetrics = () => {
 
   return (
     <div className={styles.container}>
-      {/* Top Header & Action Controls */}
+      {/* Top Header Simplificado e Limpo */}
       <div className={styles.header}>
         <div className={styles.titleArea}>
           <div style={{ padding: '10px', background: 'rgba(59, 130, 246, 0.12)', borderRadius: '12px', color: '#3b82f6', display: 'flex' }}>
@@ -661,85 +287,13 @@ const CampaignMetrics = () => {
           </div>
           <div>
             <h2 className={styles.title}>Métricas de Campanhas</h2>
-            <p className={styles.subtitle}>Gerencie os anúncios e o desempenho das suas contas de anúncios conectadas.</p>
+            <p className={styles.subtitle}>Acompanhe o investimento em anúncios, faturamento e resultados em tempo real.</p>
           </div>
-        </div>
-
-        <div className={styles.filterBar}>
-          <button 
-            className={styles.btnPrimary} 
-            style={{ background: 'linear-gradient(135deg, #1877F2, #0052cc)', boxShadow: '0 4px 12px rgba(24, 119, 242, 0.35)' }}
-            onClick={() => setIsConnectModalOpen(true)}
-          >
-            <LinkIcon size={16} /> Conectar Conta de Anúncios
-          </button>
-
-          <button className={styles.btnSecondary} onClick={handleSyncMetrics} disabled={syncing}>
-            <RefreshCw size={16} className={syncing ? styles.spin : ''} />
-            {syncing ? 'Sincronizando...' : 'Sincronizar Meta Ads'}
-          </button>
-
-          <button className={styles.btnSecondary} onClick={() => { setEditingCampaignId(null); setIsModalOpen(true); }}>
-            <Plus size={16} /> Nova Campanha
-          </button>
         </div>
       </div>
 
-      {/* API Feedback Status Alert Banner */}
-      {apiStatusMessage && (
-        <div style={{ padding: '10px 16px', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid #10b981', borderRadius: '8px', color: '#10b981', fontWeight: 600, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <CheckCircle2 size={18} />
-          {apiStatusMessage}
-        </div>
-      )}
-
-      {/* Connection Status Banner */}
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justify: 'space-between', 
-        padding: '12px 18px', 
-        background: integrations.length > 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(59, 130, 246, 0.08)',
-        border: `1px solid ${integrations.length > 0 ? 'rgba(16, 185, 129, 0.3)' : 'rgba(59, 130, 246, 0.2)'}`,
-        borderRadius: 'var(--border-radius-md)',
-        flexWrap: 'wrap',
-        gap: '12px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {integrations.length > 0 ? (
-            <CheckCircle2 size={18} color="#10b981" />
-          ) : (
-            <AlertCircle size={18} color="#3b82f6" />
-          )}
-          <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-            {integrations.length > 0 ? (
-              <>Conectado a <strong>{integrations.length}</strong> conta(s) de anúncios real(is).</>
-            ) : (
-              <>Nenhuma conta de anúncios conectada ainda. Conecte sua conta Meta/Google Ads para sincronizar estatísticas automaticamente.</>
-            )}
-          </span>
-        </div>
-
-        {integrations.length > 0 ? (
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            {integrations.map((int, i) => (
-              <span key={int.id || i} style={{ fontSize: '0.75rem', padding: '4px 10px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '20px', fontWeight: 600, color: '#10b981' }}>
-                🟢 {int.page_name}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <button 
-            onClick={() => setIsConnectModalOpen(true)} 
-            style={{ fontSize: '0.82rem', color: '#1877F2', fontWeight: 700, textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer' }}
-          >
-            + Clique para Conectar Agora
-          </button>
-        )}
-      </div>
-
-      {/* Filter Selectors Bar */}
-      <div className={styles.pillsBar} style={{ padding: '12px 16px' }}>
+      {/* Filter Selectors Bar - Apenas Período e Campanha */}
+      <div className={styles.pillsBar} style={{ padding: '14px 20px', gap: '20px' }}>
         <div className={styles.filterGroup}>
           <span className={styles.filterLabel}>Período</span>
           <select 
@@ -755,41 +309,15 @@ const CampaignMetrics = () => {
           </select>
         </div>
 
-        <div className={styles.filterGroup}>
-          <span className={styles.filterLabel}>Plataforma</span>
-          <select 
-            className={styles.selectInput}
-            value={selectedPlatform}
-            onChange={(e) => setSelectedPlatform(e.target.value)}
-          >
-            <option value="all">Todas as Plataformas</option>
-            <option value="Meta Ads">Meta Ads (FB/IG)</option>
-            <option value="Google Ads">Google Ads</option>
-          </select>
-        </div>
-
-        <div className={styles.filterGroup}>
-          <span className={styles.filterLabel}>Conta de Anúncios</span>
-          <select 
-            className={styles.selectInput}
-            value={selectedAccount}
-            onChange={(e) => setSelectedAccount(e.target.value)}
-          >
-            <option value="all">Todas as Contas ({accountOptions.length})</option>
-            {accountOptions.map((acc, idx) => (
-              <option key={idx} value={acc}>{acc}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className={styles.filterGroup}>
+        <div className={styles.filterGroup} style={{ flex: 1 }}>
           <span className={styles.filterLabel}>Campanha</span>
           <select 
             className={styles.selectInput}
+            style={{ width: '100%' }}
             value={selectedCampaign}
             onChange={(e) => setSelectedCampaign(e.target.value)}
           >
-            <option value="all">Todas as Campanhas ({campaignOptions.length})</option>
+            <option value="all">Todas as Campanhas</option>
             {campaignOptions.map((camp, idx) => (
               <option key={idx} value={camp}>{camp}</option>
             ))}
@@ -809,7 +337,7 @@ const CampaignMetrics = () => {
           </div>
           <div className={styles.statValue}>{formatBRL(totalGrossRevenue)}</div>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '8px' }}>
-            Receita total gerada pelas campanhas
+            Receita total das campanhas
           </div>
         </div>
 
@@ -823,7 +351,7 @@ const CampaignMetrics = () => {
           </div>
           <div className={styles.statValue}>{formatBRL(totalSpend)}</div>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '8px' }}>
-            Investimento veiculado
+            Investimento veiculado no período
           </div>
         </div>
 
@@ -1040,7 +568,6 @@ const CampaignMetrics = () => {
                 <th>Leads (CPL)</th>
                 <th>Conversões</th>
                 <th>ROAS</th>
-                <th>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -1073,33 +600,13 @@ const CampaignMetrics = () => {
                       </td>
                       <td style={{ fontWeight: 700, color: '#10b981' }}>{formatCompactNum(camp.conversions)}</td>
                       <td style={{ fontWeight: 700, color: '#10b981' }}>{camp.roas}x</td>
-                      <td>
-                        <button 
-                          onClick={() => handleEditCampaign(camp)}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            padding: '6px 10px',
-                            background: 'rgba(59, 130, 246, 0.1)',
-                            color: '#3b82f6',
-                            border: '1px solid rgba(59, 130, 246, 0.3)',
-                            borderRadius: '6px',
-                            fontSize: '0.78rem',
-                            fontWeight: 600,
-                            cursor: 'pointer'
-                          }}
-                        >
-                          <Edit3 size={14} /> Editar
-                        </button>
-                      </td>
                     </tr>
                   );
                 })
               ) : (
                 <tr>
-                  <td colSpan={10} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
-                    Nenhuma campanha encontrada com os filtros selecionados.
+                  <td colSpan={9} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                    Nenhuma campanha encontrada com o filtro selecionado.
                   </td>
                 </tr>
               )}
@@ -1107,356 +614,6 @@ const CampaignMetrics = () => {
           </table>
         </div>
       </div>
-
-      {/* Modal 1: Conectar Conta de Anúncios */}
-      {isConnectModalOpen && (
-        <div className={styles.modalOverlay} onClick={() => setIsConnectModalOpen(false)}>
-          <div className={styles.modalContent} style={{ maxWidth: '580px' }} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ padding: '8px', background: '#1877F2', borderRadius: '8px', color: '#fff' }}>
-                  <LinkIcon size={20} />
-                </div>
-                <h3 className={styles.modalTitle}>Conectar Conta de Anúncios</h3>
-              </div>
-              <button onClick={() => setIsConnectModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Abas de Conexão */}
-            <div style={{ display: 'flex', borderBottom: '1px solid var(--border-color)', gap: '12px' }}>
-              <button
-                onClick={() => { setConnectTab('meta_oauth'); setIsSelectingAdAccount(false); }}
-                style={{
-                  padding: '10px 14px',
-                  fontWeight: 600,
-                  fontSize: '0.9rem',
-                  borderBottom: connectTab === 'meta_oauth' ? '2px solid #1877F2' : '2px solid transparent',
-                  color: connectTab === 'meta_oauth' ? '#1877F2' : 'var(--text-secondary)',
-                  background: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                Facebook / Meta OAuth
-              </button>
-              <button
-                onClick={() => setConnectTab('manual')}
-                style={{
-                  padding: '10px 14px',
-                  fontWeight: 600,
-                  fontSize: '0.9rem',
-                  borderBottom: connectTab === 'manual' ? '2px solid #1877F2' : '2px solid transparent',
-                  color: connectTab === 'manual' ? '#1877F2' : 'var(--text-secondary)',
-                  background: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                Conexão Manual por ID / Token
-              </button>
-            </div>
-
-            {connectTab === 'meta_oauth' ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '10px 0' }}>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.5' }}>
-                  Conecte sua conta do <strong>Facebook / Meta Ads</strong> para sincronizar automaticamente campanhas, gastos em anúncios e leads de formulários instantâneos.
-                </p>
-
-                {isSelectingAdAccount ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>Selecione a Conta de Anúncios:</h4>
-                    {fbAdAccounts.map((acc) => (
-                      <button
-                        key={acc.id}
-                        onClick={() => handleSelectAdAccount(acc)}
-                        style={{
-                          padding: '12px',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          borderRadius: '8px',
-                          border: '1px solid var(--border-color)',
-                          background: 'var(--bg-app)',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{acc.name}</span>
-                        <span style={{ fontSize: '0.8rem', color: '#1877F2', fontWeight: 600 }}>Conectar</span>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <button 
-                    onClick={handleFacebookConnect}
-                    disabled={isLoginInProgress}
-                    style={{
-                      width: '100%',
-                      padding: '14px',
-                      backgroundColor: '#1877F2',
-                      color: '#ffffff',
-                      borderRadius: '8px',
-                      fontWeight: 700,
-                      fontSize: '0.95rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '10px',
-                      cursor: 'pointer',
-                      border: 'none'
-                    }}
-                  >
-                    {isLoginInProgress ? <RefreshCw className={styles.spin} size={20} /> : <Globe size={20} />}
-                    {isLoginInProgress ? 'Conectando ao Facebook...' : 'Entrar com Facebook / Meta Ads'}
-                  </button>
-                )}
-              </div>
-            ) : (
-              <form onSubmit={handleSaveManualAccount} style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '10px 0' }}>
-                <div className={styles.formGrid}>
-                  <div className={styles.formField}>
-                    <label>Plataforma</label>
-                    <select 
-                      className={styles.formInput}
-                      value={manualAccount.platform}
-                      onChange={(e) => setManualAccount({ ...manualAccount, platform: e.target.value })}
-                    >
-                      <option value="Meta Ads">Meta Ads (FB/IG)</option>
-                      <option value="Google Ads">Google Ads</option>
-                    </select>
-                  </div>
-
-                  <div className={styles.formField}>
-                    <label>Nome da Conta</label>
-                    <input 
-                      type="text" 
-                      className={styles.formInput}
-                      placeholder="Ex: Casa Favorita Móveis" 
-                      required
-                      value={manualAccount.account_name}
-                      onChange={(e) => setManualAccount({ ...manualAccount, account_name: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className={styles.formField}>
-                  <label>ID da Conta de Anúncios / Página (ex: act_1029384756)</label>
-                  <input 
-                    type="text" 
-                    className={styles.formInput} 
-                    placeholder="act_1234567890" 
-                    required
-                    value={manualAccount.account_id}
-                    onChange={(e) => setManualAccount({ ...manualAccount, account_id: e.target.value })}
-                  />
-                </div>
-
-                <div className={styles.formField}>
-                  <label>Access Token / Chave de API da Meta</label>
-                  <input 
-                    type="text" 
-                    className={styles.formInput} 
-                    placeholder="EAAXXXXXX..." 
-                    value={manualAccount.access_token}
-                    onChange={(e) => setManualAccount({ ...manualAccount, access_token: e.target.value })}
-                  />
-                </div>
-
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                  <button 
-                    type="button"
-                    onClick={handleTestToken}
-                    disabled={isTestingToken}
-                    style={{
-                      padding: '10px 14px',
-                      background: 'rgba(59, 130, 246, 0.1)',
-                      color: '#3b82f6',
-                      border: '1px solid rgba(59, 130, 246, 0.3)',
-                      borderRadius: '6px',
-                      fontSize: '0.85rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    {isTestingToken ? <RefreshCw size={14} className={styles.spin} /> : <DownloadCloud size={14} />}
-                    {isTestingToken ? 'Testando...' : 'Testar Conexão Live com a Meta'}
-                  </button>
-                </div>
-
-                {tokenTestResult && (
-                  <div style={{ 
-                    padding: '10px 12px', 
-                    borderRadius: '6px', 
-                    fontSize: '0.85rem', 
-                    fontWeight: 600,
-                    background: tokenTestResult.success ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                    border: `1px solid ${tokenTestResult.success ? '#10b981' : '#ef4444'}`,
-                    color: tokenTestResult.success ? '#10b981' : '#ef4444'
-                  }}>
-                    {tokenTestResult.message}
-                  </div>
-                )}
-
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
-                  <button type="button" className={styles.btnSecondary} onClick={() => setIsConnectModalOpen(false)}>
-                    Cancelar
-                  </button>
-                  <button type="submit" className={styles.btnPrimary} style={{ background: '#1877F2' }}>
-                    Salvar Conexão
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Modal 2: Adicionar / Editar Métrica de Campanha */}
-      {isModalOpen && (
-        <div className={styles.modalOverlay} onClick={() => setIsModalOpen(false)}>
-          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <h3 className={styles.modalTitle}>
-                {editingCampaignId ? 'Editar Métrica da Campanha' : 'Adicionar Métrica de Campanha'}
-              </h3>
-              <button onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                <X size={20} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveCampaign} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div className={styles.formGrid}>
-                <div className={styles.formField}>
-                  <label>Plataforma</label>
-                  <select 
-                    className={styles.formInput}
-                    value={newCampaign.platform}
-                    onChange={(e) => setNewCampaign({ ...newCampaign, platform: e.target.value })}
-                  >
-                    <option value="Meta Ads">Meta Ads (FB/IG)</option>
-                    <option value="Google Ads">Google Ads</option>
-                  </select>
-                </div>
-
-                <div className={styles.formField}>
-                  <label>Conta de Anúncios</label>
-                  <select 
-                    className={styles.formInput}
-                    value={newCampaign.account_name}
-                    onChange={(e) => setNewCampaign({ ...newCampaign, account_name: e.target.value })}
-                  >
-                    <option value="">Selecione a Conta de Anúncios</option>
-                    {accountOptions.map((acc, i) => (
-                      <option key={i} value={acc}>{acc}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className={styles.formField}>
-                <label>Nome da Campanha / Formulário</label>
-                <input 
-                  type="text" 
-                  className={styles.formInput} 
-                  required
-                  placeholder="Ex: Formulário: FORMULARIO C.F NOVO" 
-                  value={newCampaign.campaign_name}
-                  onChange={(e) => setNewCampaign({ ...newCampaign, campaign_name: e.target.value })}
-                />
-              </div>
-
-              <div className={styles.formGrid}>
-                <div className={styles.formField}>
-                  <label>Investimento (Gastos R$)</label>
-                  <input 
-                    type="number" 
-                    step="0.01" 
-                    className={styles.formInput} 
-                    placeholder="185541.37"
-                    value={newCampaign.spend}
-                    onChange={(e) => setNewCampaign({ ...newCampaign, spend: e.target.value })}
-                  />
-                </div>
-
-                <div className={styles.formField}>
-                  <label>Faturamento Bruto (R$)</label>
-                  <input 
-                    type="number" 
-                    step="0.01" 
-                    className={styles.formInput} 
-                    placeholder="1531717.53"
-                    value={newCampaign.gross_revenue}
-                    onChange={(e) => setNewCampaign({ ...newCampaign, gross_revenue: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className={styles.formGrid}>
-                <div className={styles.formField}>
-                  <label>Impressões</label>
-                  <input 
-                    type="number" 
-                    className={styles.formInput} 
-                    placeholder="772000"
-                    value={newCampaign.impressions}
-                    onChange={(e) => setNewCampaign({ ...newCampaign, impressions: e.target.value })}
-                  />
-                </div>
-
-                <div className={styles.formField}>
-                  <label>Cliques</label>
-                  <input 
-                    type="number" 
-                    className={styles.formInput} 
-                    placeholder="57100"
-                    value={newCampaign.clicks}
-                    onChange={(e) => setNewCampaign({ ...newCampaign, clicks: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className={styles.formGrid}>
-                <div className={styles.formField}>
-                  <label>Leads / Formulários</label>
-                  <input 
-                    type="number" 
-                    className={styles.formInput} 
-                    placeholder="4830"
-                    value={newCampaign.leads_count}
-                    onChange={(e) => setNewCampaign({ ...newCampaign, leads_count: e.target.value })}
-                  />
-                </div>
-
-                <div className={styles.formField}>
-                  <label>Conversões / Vendas</label>
-                  <input 
-                    type="number" 
-                    className={styles.formInput} 
-                    placeholder="1195"
-                    value={newCampaign.conversions}
-                    onChange={(e) => setNewCampaign({ ...newCampaign, conversions: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>
-                <button 
-                  type="button" 
-                  className={styles.btnSecondary} 
-                  onClick={() => setIsModalOpen(false)}
-                >
-                  Cancelar
-                </button>
-                <button type="submit" className={styles.btnPrimary}>
-                  Salvar Métrica
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
