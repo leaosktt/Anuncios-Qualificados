@@ -1,3 +1,4 @@
+// Vercel deploy update: v1.2.0 - Métricas de Campanhas Atualizadas
 import React, { useState, useEffect } from 'react';
 import { 
   TrendingUp, 
