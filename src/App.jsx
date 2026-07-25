@@ -10,6 +10,7 @@ import Clients from './pages/Clients';
 import Projects from './pages/Projects';
 import Settings from './pages/Settings';
 import Integrations from './pages/Integrations';
+import CampaignMetrics from './pages/CampaignMetrics';
 import Login from './pages/Login';
 
 const ProtectedRoute = ({ children }) => {
@@ -38,6 +39,7 @@ function App() {
             }>
               <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="dashboard" element={<Dashboard />} />
+              <Route path="metrics" element={<CampaignMetrics />} />
               <Route path="leads" element={<Leads />} />
               <Route path="tasks" element={<Tasks />} />
               <Route path="clients" element={<Clients />} />

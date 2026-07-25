@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, KanbanSquare, CheckSquare, FolderKanban, Settings, Users, LogOut, List, X, Link as LinkIcon } from 'lucide-react';
+import { LayoutDashboard, KanbanSquare, CheckSquare, FolderKanban, Settings, Users, LogOut, List, X, Link as LinkIcon, BarChart3 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import styles from './Sidebar.module.css';
 
@@ -14,6 +14,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const navItems = [
     { name: 'Início', path: '/dashboard', icon: <LayoutDashboard size={20} /> },
+    { name: 'Métricas', path: '/metrics', icon: <BarChart3 size={20} /> },
     { name: 'Leads', path: '/leads', icon: <List size={20} /> },
     { name: 'Tarefas', path: '/tasks', icon: <CheckSquare size={20} /> },
     { name: 'Clientes', path: '/clients', icon: <Users size={20} /> },

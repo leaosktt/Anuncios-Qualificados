@@ -118,12 +118,22 @@ serve(async (req) => {
             name = "Lead Meta Ads"
           }
 
+          let leadDate = new Date().toISOString().split('T')[0];
+          if (leadData.created_time) {
+            try {
+              leadDate = new Date(leadData.created_time).toISOString().split('T')[0];
+            } catch (e) {
+              console.warn("Invalid created_time", e);
+            }
+          }
+
           // Inserir um lead para CADA integração aplicável
           for (const integration of targetIntegrations) {
             const { error: insertError } = await supabase.from("leads").insert({
               name,
               company: "Meta Ads",
               contact,
+              date: leadDate,
               column_id: "col-1",
               priority: "medium",
               tags: ["meta-ads"],
