@@ -1,4 +1,4 @@
-// Vercel deploy update: v1.6.0 - Real Meta Ads Campaigns (02/07 Sob Medida & 01/07 Móveis)
+// Vercel deploy update: v1.7.0 - Exact Meta Ads Spend (R$ 476,86 for 01/07 Móveis) & Inline Blue Meta Ads Label
 import React, { useState, useEffect } from 'react';
 import { 
   TrendingUp, 
@@ -41,15 +41,15 @@ const REAL_META_CAMPAIGNS = [
     campaign_name: '01/07 Móveis (Formulário)',
     platform: 'Meta Ads',
     status: 'Ativa',
-    spend: 5476.86,
+    spend: 476.86,
     leads_count: 7,
     cpl: 68.12,
     impressions: 10424,
     reach: 3855,
     clicks: 646,
     ctr: 6.20,
-    cpc: 8.48,
-    cpm: 525.41
+    cpc: 0.74,
+    cpm: 45.75
   }
 ];
 
@@ -158,8 +158,8 @@ const CampaignMetrics = () => {
 
   // CPL médio ponderado
   const avgCpl = totalLeads > 0 ? (totalSpend / totalLeads) : 30.86;
-  const cpc = totalClicks > 0 ? (totalSpend / totalClicks) : 1.45;
-  const cpm = totalImpressions > 0 ? ((totalSpend / totalImpressions) * 1000) : 120.50;
+  const cpc = totalClicks > 0 ? (totalSpend / totalClicks) : 0.72;
+  const cpm = totalImpressions > 0 ? ((totalSpend / totalImpressions) * 1000) : 42.06;
   const ctr = totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100) : 5.83;
 
   const formatBRL = (val) => {
@@ -222,10 +222,10 @@ const CampaignMetrics = () => {
         </div>
       </div>
 
-      {/* Filter Selectors Bar - Período e Campanhas do Meta Ads */}
-      <div className={styles.pillsBar} style={{ padding: '14px 20px', gap: '20px' }}>
+      {/* Filter Selectors Bar - Período e Campanhas do Meta Ads com Rótulo Azul em Linha Única */}
+      <div className={styles.pillsBar} style={{ padding: '14px 20px', gap: '20px', alignItems: 'center' }}>
         <div className={styles.filterGroup}>
-          <span className={styles.filterLabel}>Período</span>
+          <span className={styles.filterLabel} style={{ whiteSpace: 'nowrap' }}>Período</span>
           <select 
             className={styles.selectInput} 
             value={selectedPeriod} 
@@ -239,11 +239,13 @@ const CampaignMetrics = () => {
           </select>
         </div>
 
-        <div className={styles.filterGroup} style={{ flex: 1 }}>
-          <span className={styles.filterLabel}>Campanha Meta Ads</span>
+        <div className={styles.filterGroup} style={{ flex: 1, minWidth: '320px' }}>
+          <span className={styles.filterLabel} style={{ color: '#1877F2', fontWeight: 700, whiteSpace: 'nowrap' }}>
+            Campanha Meta Ads
+          </span>
           <select 
             className={styles.selectInput}
-            style={{ width: '100%' }}
+            style={{ width: '100%', fontWeight: 600 }}
             value={selectedCampaign}
             onChange={(e) => setSelectedCampaign(e.target.value)}
           >
