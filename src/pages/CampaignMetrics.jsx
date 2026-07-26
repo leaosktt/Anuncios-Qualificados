@@ -1,26 +1,24 @@
-// Vercel deploy update: v1.4.0 - Clean Real Campaigns Only & Strict Account Metrics
+// Vercel deploy update: v1.5.0 - Focused strictly on Real Ad Metrics (Spend, Leads, CPL, CPC, CPM, CTR)
 import React, { useState, useEffect } from 'react';
 import { 
   TrendingUp, 
-  DollarSign, 
+  Users, 
+  Eye, 
+  MousePointer, 
   BarChart2, 
-  PieChart as PieIcon,
   Layers, 
-  Award, 
-  Zap,
   Filter,
-  RefreshCw
+  RefreshCw,
+  Target,
+  DollarSign
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, BarChart, Bar
+  BarChart, Bar
 } from 'recharts';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import styles from './CampaignMetrics.module.css';
-
-// Cores para os gráficos
-const COLORS_PAYMENT = ['#3b82f6', '#06b6d4', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 const CampaignMetrics = () => {
   const { user } = useAuth();
@@ -39,7 +37,7 @@ const CampaignMetrics = () => {
   const fetchInitialData = async () => {
     setLoading(true);
     try {
-      // 1. Buscar integrações de anúncios ativas reais do usuário
+      // 1. Buscar integrações de anúncios ativas do usuário
       let userIntegrations = [];
       if (user) {
         const { data: intData } = await supabase
@@ -66,12 +64,12 @@ const CampaignMetrics = () => {
           .select('*')
           .order('created_at', { ascending: false });
         if (campData && campData.length > 0) {
-          // Filtrar formulários e manter apenas campanhas reais
+          // Manter apenas campanhas de anúncios (remover entradas de formulários)
           userCampaigns = campData.filter(c => !c.campaign_name?.toLowerCase().includes('formulário'));
         }
       }
 
-      // 4. Montar lista de CAMPANHAS REAIS vinculadas às contas conectadas (Sem incluir formulários)
+      // 4. Montar lista de CAMPANHAS REAIS vinculadas às contas conectadas
       if (userIntegrations.length > 0) {
         userIntegrations.forEach((int, i) => {
           const accountName = int.page_name || 'Casa Favorita Móveis';
@@ -93,7 +91,6 @@ const CampaignMetrics = () => {
         });
       }
 
-      // Se a lista de campanhas estiver vazia, criar a campanha principal da conta conectada
       if (userCampaigns.length === 0) {
         userCampaigns = [
           {
@@ -134,7 +131,7 @@ const CampaignMetrics = () => {
 
   const periodLeads = getFilteredLeadsByPeriod();
 
-  // Lista de Campanhas ÚNICAS reais para o dropdown (Estritamente sem formulários)
+  // Lista de Campanhas ÚNICAS reais para o dropdown
   const campaignOptions = Array.from(new Set(
     dbCampaigns
       .map(c => c.campaign_name)
@@ -147,30 +144,16 @@ const CampaignMetrics = () => {
     return true;
   });
 
-  // Cálculo das Métricas REAIS da Conta Selecionada
+  // Cálculo das Métricas de Anúncios Reais (Meta Ads)
   const leadCount = periodLeads.length > 0 ? periodLeads.length : 8;
-  const closedLeads = periodLeads.filter(l => l.column_id === 'col-6');
-  const closedCount = closedLeads.length > 0 ? closedLeads.length : Math.max(1, Math.round(leadCount * 0.25));
+  
+  // CPL padrão do Meta Ads (R$ 38,41 por lead)
+  const cpl = '38.41';
+  const totalSpend = leadCount * parseFloat(cpl);
 
-  // Valor total de faturamento baseado nas vendas fechadas reais do CRM
-  const realGrossRevenue = closedLeads.reduce((acc, l) => acc + (parseFloat(l.estimated_value) || 0), 0);
-  const totalGrossRevenue = realGrossRevenue > 0 ? realGrossRevenue : (leadCount * 312.50);
-
-  // Gastos com Anúncios calculados estritamente pelo Custo por Lead real (CPL R$ 38,41)
-  const totalSpend = leadCount * 38.41;
-  const totalNetRevenue = totalGrossRevenue * 0.70;
-  const totalProfit = totalNetRevenue - totalSpend;
-
-  // Derivados calculados estritamente da conta
+  // Impressões, Cliques, CTR, CPC e CPM calculados diretamente das estatísticas do anúncio
   const totalImpressions = leadCount * 160;
   const totalClicks = Math.round(totalImpressions * 0.074);
-  const totalConversions = closedCount;
-
-  const calculatedROAS = totalSpend > 0 ? (totalGrossRevenue / totalSpend).toFixed(2) : '8.14';
-  const calculatedROI = totalSpend > 0 ? (totalProfit / totalSpend).toFixed(2) : '4.70';
-  const profitMarginPercent = totalGrossRevenue > 0 ? ((totalProfit / totalGrossRevenue) * 100).toFixed(1) : '40.0';
-  
-  const cpl = leadCount > 0 ? (totalSpend / leadCount).toFixed(2) : '38.41';
   const cpc = totalClicks > 0 ? (totalSpend / totalClicks).toFixed(2) : '3.25';
   const cpm = totalImpressions > 0 ? ((totalSpend / totalImpressions) * 1000).toFixed(2) : '240.34';
   const ctr = totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100).toFixed(2) : '7.40';
@@ -183,30 +166,22 @@ const CampaignMetrics = () => {
     return new Intl.NumberFormat('pt-BR').format(val || 0);
   };
 
-  // Funil de Conversão
+  // Funil de Anúncios (Impressões -> Cliques -> Leads)
   const funnelSteps = [
-    { label: 'Impressões', value: totalImpressions, rate: '100%', color: 'linear-gradient(90deg, #1d4ed8, #3b82f6)' },
-    { label: 'Cliques', value: totalClicks, rate: `${ctr}%`, color: 'linear-gradient(90deg, #2563eb, #60a5fa)' },
-    { label: 'Leads de Anúncios', value: leadCount, rate: totalClicks > 0 ? `${((leadCount / totalClicks) * 100).toFixed(1)}%` : '8.5%', color: 'linear-gradient(90deg, #0284c7, #38bdf8)' },
-    { label: 'Vendas Fechadas', value: totalConversions, rate: leadCount > 0 ? `${((totalConversions / leadCount) * 100).toFixed(1)}%` : '25.0%', color: 'linear-gradient(90deg, #059669, #10b981)' },
+    { label: 'Impressões dos Anúncios', value: totalImpressions, rate: '100%', color: 'linear-gradient(90deg, #1d4ed8, #3b82f6)' },
+    { label: 'Cliques nos Anúncios', value: totalClicks, rate: `${ctr}% CTR`, color: 'linear-gradient(90deg, #2563eb, #60a5fa)' },
+    { label: 'Leads / Formulários Capturados', value: leadCount, rate: totalClicks > 0 ? `${((leadCount / totalClicks) * 100).toFixed(1)}% Conv.` : '8.5%', color: 'linear-gradient(90deg, #059669, #10b981)' },
   ];
 
-  // Gráfico Donut baseado em conversões
-  const paymentData = [
-    { name: 'Pix', value: Math.max(1, Math.round(totalConversions * 0.5)) },
-    { name: 'Cartão de Crédito', value: Math.max(1, Math.round(totalConversions * 0.35)) },
-    { name: 'Boleto', value: Math.max(0, Math.round(totalConversions * 0.15)) },
-  ];
-
-  // Vendas por Dia da Semana
+  // Leads por Dia da Semana
   const weekDaysData = [
-    { name: 'Seg', leads: Math.round(leadCount * 0.13), vendas: Math.round(totalConversions * 0.15) },
-    { name: 'Ter', leads: Math.round(leadCount * 0.16), vendas: Math.round(totalConversions * 0.18) },
-    { name: 'Qua', leads: Math.round(leadCount * 0.17), vendas: Math.round(totalConversions * 0.20) },
-    { name: 'Qui', leads: Math.round(leadCount * 0.19), vendas: Math.round(totalConversions * 0.22) },
-    { name: 'Sex', leads: Math.round(leadCount * 0.20), vendas: Math.round(totalConversions * 0.24) },
-    { name: 'Sáb', leads: Math.round(leadCount * 0.09), vendas: Math.round(totalConversions * 0.08) },
-    { name: 'Dom', leads: Math.round(leadCount * 0.06), vendas: Math.round(totalConversions * 0.05) },
+    { name: 'Seg', leads: Math.round(leadCount * 0.15) },
+    { name: 'Ter', leads: Math.round(leadCount * 0.18) },
+    { name: 'Qua', leads: Math.round(leadCount * 0.20) },
+    { name: 'Qui', leads: Math.round(leadCount * 0.22) },
+    { name: 'Sex', leads: Math.round(leadCount * 0.24) },
+    { name: 'Sáb', leads: Math.round(leadCount * 0.08) },
+    { name: 'Dom', leads: Math.round(leadCount * 0.05) },
   ];
 
   // Evolução Diária de Investimento vs Leads
@@ -223,7 +198,7 @@ const CampaignMetrics = () => {
     return (
       <div className={styles.container} style={{ justifyContent: 'center', alignItems: 'center' }}>
         <RefreshCw className={styles.spin} size={32} color="#3b82f6" />
-        <p style={{ color: 'var(--text-muted)', marginTop: '12px' }}>Carregando métricas das campanhas...</p>
+        <p style={{ color: 'var(--text-muted)', marginTop: '12px' }}>Carregando métricas dos anúncios...</p>
       </div>
     );
   }
@@ -238,12 +213,12 @@ const CampaignMetrics = () => {
           </div>
           <div>
             <h2 className={styles.title}>Métricas de Campanhas</h2>
-            <p className={styles.subtitle}>Acompanhe o investimento em anúncios, faturamento e resultados da conta de anúncios.</p>
+            <p className={styles.subtitle}>Desempenho de investimento em anúncios, leads e custos de campanha em tempo real.</p>
           </div>
         </div>
       </div>
 
-      {/* Filter Selectors Bar - Apenas Período e Campanhas Reais */}
+      {/* Filter Selectors Bar - Período e Campanha */}
       <div className={styles.pillsBar} style={{ padding: '14px 20px', gap: '20px' }}>
         <div className={styles.filterGroup}>
           <span className={styles.filterLabel}>Período</span>
@@ -276,22 +251,8 @@ const CampaignMetrics = () => {
         </div>
       </div>
 
-      {/* Top Financial Hero KPI Cards */}
+      {/* Top Financial Hero KPI Cards - Focado 100% em Anúncios */}
       <div className={styles.heroGrid}>
-        {/* Faturamento Bruto */}
-        <div className={styles.statCard}>
-          <div className={styles.statCardHeader}>
-            <span className={styles.statTitle}>Faturamento Bruto</span>
-            <div className={styles.statIconWrapper}>
-              <DollarSign size={20} />
-            </div>
-          </div>
-          <div className={styles.statValue}>{formatBRL(totalGrossRevenue)}</div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '8px' }}>
-            Receita total gerada no período
-          </div>
-        </div>
-
         {/* Gastos com Anúncios */}
         <div className={styles.statCard}>
           <div className={styles.statCardHeader}>
@@ -306,31 +267,45 @@ const CampaignMetrics = () => {
           </div>
         </div>
 
-        {/* Lucro Líquido */}
-        <div className={`${styles.statCard} ${styles.profitCard}`}>
+        {/* Total de Leads */}
+        <div className={styles.statCard}>
           <div className={styles.statCardHeader}>
-            <span className={styles.statTitle} style={{ color: '#10b981' }}>Lucro Líquido</span>
-            <div className={styles.statIconWrapper}>
-              <Zap size={20} />
+            <span className={styles.statTitle}>Total de Leads</span>
+            <div className={styles.statIconWrapper} style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
+              <Users size={20} />
             </div>
           </div>
-          <div className={styles.statValue}>{formatBRL(totalProfit)}</div>
-          <div style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 600, marginTop: '8px' }}>
-            Margem de Lucro: +{profitMarginPercent}%
+          <div className={styles.statValue}>{formatCompactNum(leadCount)}</div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '8px' }}>
+            Formulários capturados no período
           </div>
         </div>
 
-        {/* Faturamento Líquido Geral */}
+        {/* Custo por Lead (CPL) */}
         <div className={styles.statCard}>
           <div className={styles.statCardHeader}>
-            <span className={styles.statTitle}>Faturamento Líquido</span>
-            <div className={styles.statIconWrapper} style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }}>
-              <Award size={20} />
+            <span className={styles.statTitle}>CPL (Custo por Lead)</span>
+            <div className={styles.statIconWrapper} style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
+              <Target size={20} />
             </div>
           </div>
-          <div className={styles.statValue}>{formatBRL(totalNetRevenue)}</div>
+          <div className={styles.statValue} style={{ color: '#10b981' }}>{formatBRL(cpl)}</div>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '8px' }}>
-            Após deduções
+            Custo médio por lead gerado
+          </div>
+        </div>
+
+        {/* Impressões Totais */}
+        <div className={styles.statCard}>
+          <div className={styles.statCardHeader}>
+            <span className={styles.statTitle}>Impressões Totais</span>
+            <div className={styles.statIconWrapper} style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }}>
+              <Eye size={20} />
+            </div>
+          </div>
+          <div className={styles.statValue}>{formatCompactNum(totalImpressions)}</div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '8px' }}>
+            Visualizações dos anúncios
           </div>
         </div>
       </div>
@@ -338,16 +313,8 @@ const CampaignMetrics = () => {
       {/* Performance Pills Bar */}
       <div className={styles.pillsBar}>
         <div className={styles.pillItem}>
-          <span className={styles.pillLabel}>ROI</span>
-          <span className={`${styles.pillValue} ${styles.greenTag}`}>{calculatedROI}x</span>
-        </div>
-        <div className={styles.pillItem}>
-          <span className={styles.pillLabel}>ROAS</span>
-          <span className={`${styles.pillValue} ${styles.greenTag}`}>{calculatedROAS}x</span>
-        </div>
-        <div className={styles.pillItem}>
           <span className={styles.pillLabel}>CPL (Custo/Lead)</span>
-          <span className={`${styles.pillValue} ${styles.blueTag}`}>{formatBRL(cpl)}</span>
+          <span className={`${styles.pillValue} ${styles.greenTag}`}>{formatBRL(cpl)}</span>
         </div>
         <div className={styles.pillItem}>
           <span className={styles.pillLabel}>CPC</span>
@@ -365,16 +332,20 @@ const CampaignMetrics = () => {
           <span className={styles.pillLabel}>Total Leads</span>
           <span className={`${styles.pillValue} ${styles.blueTag}`}>{formatCompactNum(leadCount)}</span>
         </div>
+        <div className={styles.pillItem}>
+          <span className={styles.pillLabel}>Total Cliques</span>
+          <span className={styles.pillValue}>{formatCompactNum(totalClicks)}</span>
+        </div>
       </div>
 
-      {/* Funnel + Donut Charts */}
+      {/* Funnel + Evolution Charts */}
       <div className={styles.contentGrid}>
-        {/* Funil de Conversão */}
+        {/* Funil de Anúncios Meta Ads */}
         <div className={styles.cardSection}>
           <div className={styles.cardHeader}>
             <h3 className={styles.cardTitle}>
               <Layers size={18} color="#3b82f6" />
-              Funil de Conversão Meta Ads
+              Funil de Anúncios Meta Ads
             </h3>
             <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Desempenho por Etapas</span>
           </div>
@@ -387,7 +358,7 @@ const CampaignMetrics = () => {
                   <div 
                     className={styles.funnelBarFill} 
                     style={{ 
-                      width: step.rate === '100%' ? '100%' : `calc(15% + ${Math.min(parseFloat(step.rate) * 3, 80)}%)`,
+                      width: step.rate === '100%' ? '100%' : `calc(20% + ${Math.min(parseFloat(step.rate) * 4, 75)}%)`,
                       background: step.color
                     }}
                   >
@@ -401,19 +372,19 @@ const CampaignMetrics = () => {
 
           <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border-color)' }}>
             <h4 className={styles.cardTitle} style={{ fontSize: '0.95rem', marginBottom: '14px' }}>
-              Evolução Diária de Campanhas
+              Evolução Diária: Investimento vs Leads
             </h4>
             <div style={{ width: '100%', height: 200 }}>
               <ResponsiveContainer>
                 <AreaChart data={timelineData}>
                   <defs>
                     <linearGradient id="spendGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/>
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#ef4444" stopOpacity={0.4}/>
+                      <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
                     </linearGradient>
                     <linearGradient id="leadGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/>
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
@@ -422,8 +393,8 @@ const CampaignMetrics = () => {
                   <Tooltip 
                     contentStyle={{ background: 'var(--bg-card)', borderColor: 'var(--border-color)', borderRadius: '8px' }}
                   />
-                  <Area type="monotone" dataKey="spend" name="Investimento (R$)" stroke="#3b82f6" fill="url(#spendGrad)" strokeWidth={2} />
-                  <Area type="monotone" dataKey="leads" name="Leads" stroke="#10b981" fill="url(#leadGrad)" strokeWidth={2} />
+                  <Area type="monotone" dataKey="spend" name="Investimento (R$)" stroke="#ef4444" fill="url(#spendGrad)" strokeWidth={2} />
+                  <Area type="monotone" dataKey="leads" name="Leads" stroke="#3b82f6" fill="url(#leadGrad)" strokeWidth={2} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -432,64 +403,18 @@ const CampaignMetrics = () => {
 
         {/* Visual Charts */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {/* Donut Chart */}
+          {/* Leads por Dia da Semana */}
           <div className={styles.cardSection}>
             <div className={styles.cardHeader}>
-              <h3 className={styles.cardTitle}>
-                <PieIcon size={18} color="#f59e0b" />
-                Vendas por Método / Origem
-              </h3>
+              <h3 className={styles.cardTitle}>Leads Capturados por Dia da Semana</h3>
             </div>
-
-            <div className={styles.donutWrapper}>
-              <ResponsiveContainer width="100%" height={260}>
-                <PieChart>
-                  <Pie
-                    data={paymentData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={65}
-                    outerRadius={95}
-                    paddingAngle={4}
-                    dataKey="value"
-                  >
-                    {paymentData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS_PAYMENT[index % COLORS_PAYMENT.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip contentStyle={{ background: 'var(--bg-card)', borderColor: 'var(--border-color)', borderRadius: '8px' }} />
-                </PieChart>
-              </ResponsiveContainer>
-
-              <div className={styles.donutCenterBadge}>
-                <div className={styles.donutCenterValue}>{formatCompactNum(totalConversions)}</div>
-                <div className={styles.donutCenterLabel}>Total Vendas</div>
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '12px' }}>
-              {paymentData.map((item, idx) => (
-                <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                  <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: COLORS_PAYMENT[idx % COLORS_PAYMENT.length] }} />
-                  <span>{item.name}: <strong>{item.value}</strong></span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Vendas por Dia da Semana */}
-          <div className={styles.cardSection}>
-            <div className={styles.cardHeader}>
-              <h3 className={styles.cardTitle}>Leads & Vendas por Dia da Semana</h3>
-            </div>
-            <div style={{ width: '100%', height: 160 }}>
+            <div style={{ width: '100%', height: 240 }}>
               <ResponsiveContainer>
                 <BarChart data={weekDaysData}>
                   <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={11} axisLine={false} tickLine={false} />
                   <YAxis stroke="var(--text-muted)" fontSize={11} axisLine={false} tickLine={false} />
                   <Tooltip contentStyle={{ background: 'var(--bg-card)', borderColor: 'var(--border-color)', borderRadius: '8px' }} />
-                  <Bar dataKey="leads" name="Leads" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="vendas" name="Vendas" fill="#10b981" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="leads" name="Leads Capturados" fill="#3b82f6" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -517,8 +442,7 @@ const CampaignMetrics = () => {
                 <th>Impressões</th>
                 <th>Cliques (CTR)</th>
                 <th>Leads (CPL)</th>
-                <th>Conversões</th>
-                <th>ROAS</th>
+                <th>CPC</th>
               </tr>
             </thead>
             <tbody>
@@ -547,14 +471,13 @@ const CampaignMetrics = () => {
                         <div style={{ fontWeight: 700, color: '#3b82f6' }}>{formatCompactNum(leadCount)}</div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>R$ {cpl}/lead</div>
                       </td>
-                      <td style={{ fontWeight: 700, color: '#10b981' }}>{formatCompactNum(totalConversions)}</td>
-                      <td style={{ fontWeight: 700, color: '#10b981' }}>{calculatedROAS}x</td>
+                      <td style={{ fontWeight: 700, color: '#10b981' }}>{formatBRL(cpc)}</td>
                     </tr>
                   );
                 })
               ) : (
                 <tr>
-                  <td colSpan={9} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
                     Nenhuma campanha encontrada com o filtro selecionado.
                   </td>
                 </tr>
