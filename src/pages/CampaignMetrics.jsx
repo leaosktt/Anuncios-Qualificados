@@ -1,5 +1,5 @@
-// Vercel deploy update: v1.7.0 - Exact Meta Ads Spend (R$ 476,86 for 01/07 Móveis) & Inline Blue Meta Ads Label
-import React, { useState, useEffect } from 'react';
+// Vercel deploy update: v1.8.0 - Generate Report PDF/Image, Blue Period Label & Strict 30-Day Period
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   TrendingUp, 
   Users, 
@@ -8,12 +8,15 @@ import {
   Layers, 
   Filter,
   RefreshCw,
-  Target
+  Target,
+  Download,
+  FileText
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar
 } from 'recharts';
+import html2canvas from 'html2canvas';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import styles from './CampaignMetrics.module.css';
@@ -55,12 +58,15 @@ const REAL_META_CAMPAIGNS = [
 
 const CampaignMetrics = () => {
   const { user } = useAuth();
-  const [selectedPeriod, setSelectedPeriod] = useState('30days');
+  const [selectedPeriod] = useState('30days'); // Período fixo em Últimos 30 dias
   const [selectedCampaign, setSelectedCampaign] = useState('all');
 
   const [integrations, setIntegrations] = useState([]);
   const [dbCampaigns, setDbCampaigns] = useState(REAL_META_CAMPAIGNS);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
+
+  const reportRef = useRef(null);
 
   useEffect(() => {
     fetchInitialData();
@@ -110,47 +116,43 @@ const CampaignMetrics = () => {
     }
   };
 
-  // Multiplicador do período selecionado
-  const getPeriodMultiplier = (period) => {
-    switch (period) {
-      case 'today': return (1 / 30);
-      case 'yesterday': return (1 / 30);
-      case '7days': return (7 / 30);
-      case '30days': return 1.0;
-      case 'all': default: return 1.0;
+  // Função para Gerar e Baixar o Relatório do Layout de Métricas em Imagem/PDF
+  const handleExportReport = async () => {
+    if (!reportRef.current) return;
+    setExporting(true);
+    try {
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#f8fafc',
+        logging: false
+      });
+
+      const image = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.href = image;
+      link.download = `Relatorio_Metricas_Meta_Ads_CA_CASA_FAV_${new Date().toISOString().slice(0, 10)}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error('Erro ao gerar relatório:', err);
+      alert('Erro ao gerar relatório. Tente novamente.');
+    } finally {
+      setExporting(false);
     }
   };
-
-  const periodMult = getPeriodMultiplier(selectedPeriod);
 
   // Lista de Campanhas Reais do Meta Ads para o dropdown
   const campaignOptions = Array.from(new Set(dbCampaigns.map(c => c.campaign_name))).filter(Boolean);
 
   // Filtragem das campanhas
-  const rawFilteredCampaigns = dbCampaigns.filter(c => {
+  const filteredCampaigns = dbCampaigns.filter(c => {
     if (selectedCampaign !== 'all' && c.campaign_name !== selectedCampaign) return false;
     return true;
   });
 
-  // Ajustar métricas proporcionalmente ao período selecionado
-  const filteredCampaigns = rawFilteredCampaigns.map(c => {
-    const periodSpend = c.spend * periodMult;
-    const periodLeads = Math.max(selectedPeriod === '30days' || selectedPeriod === 'all' ? c.leads_count : Math.round(c.leads_count * periodMult), selectedPeriod === 'today' || selectedPeriod === 'yesterday' ? 1 : 1);
-    const periodImpressions = Math.round(c.impressions * periodMult);
-    const periodClicks = Math.round(c.clicks * periodMult);
-    const periodCpl = c.cpl || (c.leads_count > 0 ? (c.spend / c.leads_count) : 30.86);
-
-    return {
-      ...c,
-      spend: periodSpend,
-      leads_count: periodLeads,
-      impressions: periodImpressions,
-      clicks: periodClicks,
-      cpl: periodCpl
-    };
-  });
-
-  // Totais Agregados
+  // Totais Agregados dos Últimos 30 Dias
   const totalSpend = filteredCampaigns.reduce((acc, c) => acc + Number(c.spend || 0), 0);
   const totalLeads = filteredCampaigns.reduce((acc, c) => acc + Number(c.leads_count || 0), 0);
   const totalImpressions = filteredCampaigns.reduce((acc, c) => acc + Number(c.impressions || 0), 0);
@@ -208,8 +210,8 @@ const CampaignMetrics = () => {
   }
 
   return (
-    <div className={styles.container}>
-      {/* Top Header Limpo */}
+    <div className={styles.container} ref={reportRef}>
+      {/* Top Header Limpo com Botão de Gerar Relatório */}
       <div className={styles.header}>
         <div className={styles.titleArea}>
           <div style={{ padding: '10px', background: 'rgba(59, 130, 246, 0.12)', borderRadius: '12px', color: '#3b82f6', display: 'flex' }}>
@@ -220,22 +222,47 @@ const CampaignMetrics = () => {
             <p className={styles.subtitle}>Estatísticas oficiais sincronizadas com a conta C.A CASA FAV.</p>
           </div>
         </div>
+
+        {/* Botão para Gerar e Baixar o Relatório */}
+        <div>
+          <button 
+            onClick={handleExportReport}
+            disabled={exporting}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 18px',
+              background: 'linear-gradient(135deg, #1877F2, #0052cc)',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              fontWeight: 700,
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(24, 119, 242, 0.35)',
+              transition: 'transform 0.2s'
+            }}
+          >
+            {exporting ? <RefreshCw className={styles.spin} size={18} /> : <Download size={18} />}
+            {exporting ? 'Gerando Relatório...' : 'Gerar Relatório'}
+          </button>
+        </div>
       </div>
 
-      {/* Filter Selectors Bar - Período e Campanhas do Meta Ads com Rótulo Azul em Linha Única */}
+      {/* Filter Selectors Bar - Rótulos "PERÍODO" e "CAMPANHA META ADS" em AZUL */}
       <div className={styles.pillsBar} style={{ padding: '14px 20px', gap: '20px', alignItems: 'center' }}>
         <div className={styles.filterGroup}>
-          <span className={styles.filterLabel} style={{ whiteSpace: 'nowrap' }}>Período</span>
+          <span className={styles.filterLabel} style={{ color: '#1877F2', fontWeight: 700, whiteSpace: 'nowrap' }}>
+            Período
+          </span>
           <select 
             className={styles.selectInput} 
-            value={selectedPeriod} 
-            onChange={(e) => setSelectedPeriod(e.target.value)}
+            value="30days" 
+            onChange={() => {}}
+            style={{ cursor: 'default' }}
           >
-            <option value="today">Hoje</option>
-            <option value="yesterday">Ontem</option>
-            <option value="7days">Últimos 7 dias</option>
             <option value="30days">Últimos 30 dias (25 jun - 24 jul)</option>
-            <option value="all">Todo o Período</option>
           </select>
         </div>
 
