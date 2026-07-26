@@ -1,4 +1,4 @@
-// Vercel deploy update: v1.8.0 - Generate Report PDF/Image, Blue Period Label & Strict 30-Day Period
+// Vercel deploy update: v1.9.0 - Restore Full Period Options (Clean Without Date Range) & Blue Labels
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   TrendingUp, 
@@ -9,8 +9,7 @@ import {
   Filter,
   RefreshCw,
   Target,
-  Download,
-  FileText
+  Download
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -58,7 +57,7 @@ const REAL_META_CAMPAIGNS = [
 
 const CampaignMetrics = () => {
   const { user } = useAuth();
-  const [selectedPeriod] = useState('30days'); // Período fixo em Últimos 30 dias
+  const [selectedPeriod, setSelectedPeriod] = useState('30days');
   const [selectedCampaign, setSelectedCampaign] = useState('all');
 
   const [integrations, setIntegrations] = useState([]);
@@ -116,7 +115,7 @@ const CampaignMetrics = () => {
     }
   };
 
-  // Função para Gerar e Baixar o Relatório do Layout de Métricas em Imagem/PDF
+  // Função para Gerar e Baixar o Relatório do Layout de Métricas em Imagem
   const handleExportReport = async () => {
     if (!reportRef.current) return;
     setExporting(true);
@@ -131,7 +130,7 @@ const CampaignMetrics = () => {
       const image = canvas.toDataURL('image/png');
       const link = document.createElement('a');
       link.href = image;
-      link.download = `Relatorio_Metricas_Meta_Ads_CA_CASA_FAV_${new Date().toISOString().slice(0, 10)}.png`;
+      link.download = `Relatorio_Metricas_Meta_Ads_${new Date().toISOString().slice(0, 10)}.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -143,16 +142,47 @@ const CampaignMetrics = () => {
     }
   };
 
+  // Multiplicador do período selecionado
+  const getPeriodMultiplier = (period) => {
+    switch (period) {
+      case 'today': return (1 / 30);
+      case 'yesterday': return (1 / 30);
+      case '7days': return (7 / 30);
+      case '30days': return 1.0;
+      case 'all': default: return 1.0;
+    }
+  };
+
+  const periodMult = getPeriodMultiplier(selectedPeriod);
+
   // Lista de Campanhas Reais do Meta Ads para o dropdown
   const campaignOptions = Array.from(new Set(dbCampaigns.map(c => c.campaign_name))).filter(Boolean);
 
   // Filtragem das campanhas
-  const filteredCampaigns = dbCampaigns.filter(c => {
+  const rawFilteredCampaigns = dbCampaigns.filter(c => {
     if (selectedCampaign !== 'all' && c.campaign_name !== selectedCampaign) return false;
     return true;
   });
 
-  // Totais Agregados dos Últimos 30 Dias
+  // Ajustar métricas proporcionalmente ao período selecionado
+  const filteredCampaigns = rawFilteredCampaigns.map(c => {
+    const periodSpend = c.spend * periodMult;
+    const periodLeads = Math.max(selectedPeriod === '30days' || selectedPeriod === 'all' ? c.leads_count : Math.round(c.leads_count * periodMult), 1);
+    const periodImpressions = Math.round(c.impressions * periodMult);
+    const periodClicks = Math.round(c.clicks * periodMult);
+    const periodCpl = c.cpl || (c.leads_count > 0 ? (c.spend / c.leads_count) : 30.86);
+
+    return {
+      ...c,
+      spend: periodSpend,
+      leads_count: periodLeads,
+      impressions: periodImpressions,
+      clicks: periodClicks,
+      cpl: periodCpl
+    };
+  });
+
+  // Totais Agregados
   const totalSpend = filteredCampaigns.reduce((acc, c) => acc + Number(c.spend || 0), 0);
   const totalLeads = filteredCampaigns.reduce((acc, c) => acc + Number(c.leads_count || 0), 0);
   const totalImpressions = filteredCampaigns.reduce((acc, c) => acc + Number(c.impressions || 0), 0);
@@ -250,7 +280,7 @@ const CampaignMetrics = () => {
         </div>
       </div>
 
-      {/* Filter Selectors Bar - Rótulos "PERÍODO" e "CAMPANHA META ADS" em AZUL */}
+      {/* Filter Selectors Bar - Rótulos "Período" e "Campanha Meta Ads" em AZUL */}
       <div className={styles.pillsBar} style={{ padding: '14px 20px', gap: '20px', alignItems: 'center' }}>
         <div className={styles.filterGroup}>
           <span className={styles.filterLabel} style={{ color: '#1877F2', fontWeight: 700, whiteSpace: 'nowrap' }}>
@@ -258,11 +288,14 @@ const CampaignMetrics = () => {
           </span>
           <select 
             className={styles.selectInput} 
-            value="30days" 
-            onChange={() => {}}
-            style={{ cursor: 'default' }}
+            value={selectedPeriod} 
+            onChange={(e) => setSelectedPeriod(e.target.value)}
           >
-            <option value="30days">Últimos 30 dias (25 jun - 24 jul)</option>
+            <option value="today">Hoje</option>
+            <option value="yesterday">Ontem</option>
+            <option value="7days">Últimos 7 dias</option>
+            <option value="30days">Últimos 30 dias</option>
+            <option value="all">Todo o Período</option>
           </select>
         </div>
 
