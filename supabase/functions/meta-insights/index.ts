@@ -29,26 +29,21 @@ function getDateRangeForPeriod(period: string, timezone: string) {
   let until = new Date(todayDate);
 
   if (period === 'today') {
-    // Hoje
     since = todayDate;
     until = todayDate;
   } else if (period === 'yesterday') {
-    // Ontem
     since = new Date(todayDate);
     since.setUTCDate(since.getUTCDate() - 1);
     until = new Date(since);
   } else if (period === '7days') {
-    // Últimos 7 dias
     since = new Date(todayDate);
     since.setUTCDate(since.getUTCDate() - 6);
     until = todayDate;
   } else if (period === '30days') {
-    // Últimos 30 dias
     since = new Date(todayDate);
     since.setUTCDate(since.getUTCDate() - 29);
     until = todayDate;
   } else {
-    // Todo o período / Padrão (últimos 90 dias)
     since = new Date(todayDate);
     since.setUTCDate(since.getUTCDate() - 89);
     until = todayDate;
@@ -68,7 +63,6 @@ async function fetchWithRetry(url: string, retries = 3, delay = 1000): Promise<a
 
       if (data.error) {
         const code = data.error.code;
-        // Erros de rate limit Meta (4, 17, 613) ou erro 500 do servidor Meta
         if (code === 4 || code === 17 || code === 613 || res.status >= 500) {
           attempt++;
           if (attempt < retries) {
@@ -197,8 +191,12 @@ serve(async (req) => {
     const { since, until } = getDateRangeForPeriod(period, timezone_name);
     const timeRangeStr = JSON.stringify({ since, until });
 
-    // 3. Consultar Insights no nível de campanha (Graph API v23.0)
-    let insightsUrl: string | null = `https://graph.facebook.com/v23.0/${cleanActId}/insights?level=campaign&fields=campaign_id,campaign_name,spend,impressions,reach,clicks,ctr,cpc,cpm,frequency,actions,action_values,cost_per_action_type,purchase_roas&time_range=${encodeURIComponent(timeRangeStr)}&access_token=${accessToken}`;
+    // Definir explicitamente action_attribution_windows para 7d_click e 1d_view (Padrão oficial Meta Ads Manager)
+    const attributionWindows = ['7d_click', '1d_view'];
+    const attributionWindowsStr = JSON.stringify(attributionWindows);
+
+    // 3. Consultar Insights no nível de campanha (Graph API v23.0) com action_attribution_windows explícito
+    let insightsUrl: string | null = `https://graph.facebook.com/v23.0/${cleanActId}/insights?level=campaign&fields=campaign_id,campaign_name,spend,impressions,reach,clicks,ctr,cpc,cpm,frequency,actions,action_values,cost_per_action_type,purchase_roas&time_range=${encodeURIComponent(timeRangeStr)}&action_attribution_windows=${encodeURIComponent(attributionWindowsStr)}&access_token=${accessToken}`;
 
     let rawCampaignsData: any[] = [];
 
@@ -227,7 +225,7 @@ serve(async (req) => {
       insightsUrl = insightsRes.paging?.next || null;
     }
 
-    // 4. Buscar também a lista de campanhas para obter o status da veiculação (ACTIVE/PAUSED)
+    // 4. Buscar a lista de campanhas para obter o status da veiculação (ACTIVE/PAUSED)
     let activeCampaignsMap: Record<string, string> = {};
     try {
       const campListUrl = `https://graph.facebook.com/v23.0/${cleanActId}/campaigns?fields=id,name,status,effective_status&access_token=${accessToken}`;
@@ -241,7 +239,20 @@ serve(async (req) => {
       console.warn("Aviso ao buscar status de campanhas:", cErr);
     }
 
-    // 5. Normalizar os dados oficiais da API Meta
+    // 5. Normalizar os dados com DEDUPLICAÇÃO DE LEADS
+    /*
+      REGRA DE DEDUPLICAÇÃO DE LEADS DA META API:
+      O array 'actions' retornado pela Meta API contém action_types primários e secundários.
+      Para campanhas de Lead Ads, a Meta reporta o action_type 'lead' (somatória geral de formulários)
+      E SIMULTANEAMENTE 'onsite_conversion.lead_grouped' (sub-breakdown no Facebook) e/ou 'offsite_conversion.fb_pixel_lead' (sub-breakdown no Pixel).
+      
+      SE SOMARMOS 'lead' + 'onsite_conversion.lead_grouped', O MESMO LEAD É CONTADO 2 VEZES.
+      
+      REGRA ADOTADA:
+      1. Procurar primeiro pelo action_type === 'lead'. Se existir, usar seu valor diretamente.
+      2. Somente se 'lead' NÃO existir no array, buscar por 'onsite_conversion.lead_grouped' ou 'offsite_conversion.fb_pixel_lead' ou 'messaging_conversation_started_7d'.
+      3. NUNCA somar 'lead' com seus sub-breakdowns.
+    */
     const campaigns = rawCampaignsData.map((item: any) => {
       const spend = parseFloat(item.spend || '0');
       const impressions = parseInt(item.impressions || '0');
@@ -251,30 +262,32 @@ serve(async (req) => {
       const cpc = item.cpc ? parseFloat(item.cpc) : (clicks > 0 ? spend / clicks : 0);
       const cpm = item.cpm ? parseFloat(item.cpm) : (impressions > 0 ? (spend / impressions) * 1000 : 0);
 
-      // Extração rigorosa de Leads do array 'actions'
+      // Deduplicação estrita de Leads
       let leads = 0;
       if (item.actions && Array.isArray(item.actions)) {
-        item.actions.forEach((act: any) => {
-          const type = (act.action_type || '').toLowerCase();
-          // Tipos mapeados: lead, onsite_conversion.lead_grouped, offsite_conversion.fb_pixel_lead, conversation, messaging
-          if (
-            type === 'lead' ||
-            type === 'onsite_conversion.lead_grouped' ||
-            type === 'offsite_conversion.fb_pixel_lead' ||
-            type.includes('conversation') ||
-            type.includes('messaging')
-          ) {
-            leads += parseInt(act.value || '0');
+        // Passo 1: Procurar o action_type 'lead' direto
+        const primaryLeadObj = item.actions.find((a: any) => (a.action_type || '').toLowerCase() === 'lead');
+
+        if (primaryLeadObj) {
+          leads = parseInt(primaryLeadObj.value || '0');
+        } else {
+          // Passo 2: Se 'lead' não existir, procurar por conversas de mensagem ou agrupados
+          const msgObj = item.actions.find((a: any) => {
+            const t = (a.action_type || '').toLowerCase();
+            return t === 'onsite_conversion.lead_grouped' || t.includes('messaging_conversation_started') || t.includes('conversation');
+          });
+          if (msgObj) {
+            leads = parseInt(msgObj.value || '0');
           }
-        });
+        }
       }
 
-      // CPL oficial: extrair do cost_per_action_type se presente, caso contrário spend / leads
+      // CPL oficial: extrair do cost_per_action_type se presente pela API Meta; caso contrário spend / leads
       let cpl = 0;
       if (item.cost_per_action_type && Array.isArray(item.cost_per_action_type)) {
         const cplObj = item.cost_per_action_type.find((c: any) => {
           const type = (c.action_type || '').toLowerCase();
-          return type === 'lead' || type.includes('lead');
+          return type === 'lead';
         });
         if (cplObj && cplObj.value) {
           cpl = parseFloat(cplObj.value);
@@ -301,7 +314,8 @@ serve(async (req) => {
         clicks,
         ctr,
         cpc,
-        cpm
+        cpm,
+        raw_actions: item.actions || [] // Retornado para inspeção/auditoria de ações
       };
     });
 
@@ -323,7 +337,8 @@ serve(async (req) => {
           ad_account_id: cleanActId,
           ad_account_name: account_name,
           currency,
-          timezone_name
+          timezone_name,
+          attribution_windows: attributionWindows
         },
         period: { period, since, until },
         last_sync_at: nowIso,

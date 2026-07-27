@@ -351,7 +351,7 @@ const CampaignMetrics = () => {
           <div>
             <h2 className={styles.title}>Métricas de Campanhas (Meta Ads Manager)</h2>
             <p className={styles.subtitle}>
-              Conta: <strong>{accountInfo?.ad_account_name || 'Meta Ads'}</strong> ({accountInfo?.ad_account_id}) | Fuso: {accountInfo?.timezone_name}
+              Conta: <strong>{accountInfo?.ad_account_name || 'Meta Ads'}</strong> ({accountInfo?.ad_account_id}) | Fuso: {accountInfo?.timezone_name} | Janela de Atribuição: 7d Clique / 1d Visualização
             </p>
           </div>
         </div>
