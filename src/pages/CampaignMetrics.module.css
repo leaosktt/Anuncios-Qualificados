@@ -15,6 +15,7 @@
   justify-content: space-between;
   align-items: center;
   gap: 14px;
+  margin-top: 4px;
 }
 
 .titleArea {
@@ -296,11 +297,11 @@
   gap: 8px;
 }
 
-/* Funnel Styling */
+/* Funnel Styling - Rótulos e Barras sem Cortes ou Sobreposições */
 .funnelContainer {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .funnelStep {
@@ -323,7 +324,7 @@
   position: relative;
   display: flex;
   align-items: center;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .funnelBarFill {
@@ -341,12 +342,13 @@
 
 .funnelRateTextOutside {
   position: absolute;
-  left: 12px;
+  left: 10px;
   color: var(--text-primary);
   font-weight: 700;
   font-size: 0.78rem;
   white-space: nowrap;
   pointer-events: none;
+  z-index: 2;
 }
 
 .funnelValue {
@@ -404,8 +406,8 @@
 }
 
 .statusPaused {
-  background: rgba(245, 158, 11, 0.12);
-  color: #f59e0b;
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
 }
 
 .dot {
