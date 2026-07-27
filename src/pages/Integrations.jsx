@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link as LinkIcon, CheckCircle, Loader2, Plus, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Link as LinkIcon, CheckCircle, Loader2, Plus, ArrowRight, ShieldCheck, Trash2, Calendar, AlertTriangle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import styles from './Pages.module.css';
@@ -9,17 +9,12 @@ const Integrations = () => {
   const [activeIntegrations, setActiveIntegrations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fbPages, setFbPages] = useState([]);
-  const [fbForms, setFbForms] = useState([]);
   const [selectedPage, setSelectedPage] = useState(null);
   
   const [isSelectingPage, setIsSelectingPage] = useState(false);
-  const [isSelectingForm, setIsSelectingForm] = useState(false);
   const [isLoginInProgress, setIsLoginInProgress] = useState(false);
-  
-  const [manualToken, setManualToken] = useState('');
-  const [manualPageId, setManualPageId] = useState('');
-  const [manualFormId, setManualFormId] = useState('');
-  const [manualAccountName, setManualAccountName] = useState('');
+  const [exchangingToken, setExchangingToken] = useState(false);
+  const [noAccountsFound, setNoAccountsFound] = useState(false);
 
   useEffect(() => {
     checkActiveIntegration();
@@ -51,129 +46,93 @@ const Integrations = () => {
     
     if (isLoginInProgress) return;
     setIsLoginInProgress(true);
+    setNoAccountsFound(false);
     
-    // Escopos completos para capturar Páginas do Facebook e Contas de Anúncios do Meta Ads
-    const scopes = 'public_profile,email,pages_show_list,pages_read_engagement,leads_retrieval,ads_read,ads_management,business_management';
+    // Escopos oficiais da Meta API v23.0 (sem ads_management)
+    const scopes = 'public_profile,email,pages_show_list,leads_retrieval,ads_read,business_management';
     
     window.FB.login((response) => {
       setIsLoginInProgress(false);
       if (response.authResponse) {
-        fetchUserPagesAndAdAccounts(response.authResponse.accessToken, response.authResponse.userID);
+        fetchUserAdAccounts(response.authResponse.accessToken);
       } else {
         alert('Conexão com o Facebook cancelada pelo usuário.');
       }
     }, { scope: scopes, return_scopes: true, auth_type: 'rerequest' });
   };
 
-  const fetchUserPagesAndAdAccounts = async (accessToken, fbUserId) => {
-    let combinedItems = [];
+  const fetchUserAdAccounts = async (shortLivedAccessToken) => {
+    let adAccounts = [];
     
-    // 1. Buscar Páginas do Facebook
-    window.FB.api('/me/accounts', { access_token: accessToken, fields: 'id,name,access_token', limit: 100 }, function(pageRes) {
-      if (pageRes && !pageRes.error && pageRes.data && pageRes.data.length > 0) {
-        pageRes.data.forEach(p => {
-          combinedItems.push({
-            id: p.id,
-            name: `Página: ${p.name}`,
-            access_token: p.access_token || accessToken,
-            type: 'page'
+    // Consultar as contas de anúncios ativas do usuário na Meta Graph API v23.0
+    window.FB.api('/me/adaccounts', { access_token: shortLivedAccessToken, fields: 'id,name,account_id,currency,timezone_name', limit: 100 }, function(res) {
+      if (res && !res.error && res.data && res.data.length > 0) {
+        res.data.forEach(ad => {
+          adAccounts.push({
+            id: ad.id || `act_${ad.account_id}`,
+            account_id: ad.account_id || ad.id,
+            name: ad.name || `Conta ${ad.account_id || ad.id}`,
+            currency: ad.currency || 'BRL',
+            timezone_name: ad.timezone_name || 'America/Sao_Paulo',
+            access_token: shortLivedAccessToken
           });
         });
+
+        setFbPages(adAccounts);
+        setIsSelectingPage(true);
+      } else {
+        // Se a API retornar vazia, exibir estado claro de erro na UI
+        setNoAccountsFound(true);
+        setIsSelectingPage(false);
       }
-
-      // 2. Buscar Contas de Anúncios do Meta Ads
-      window.FB.api('/me/adaccounts', { access_token: accessToken, fields: 'id,name,account_id,access_token', limit: 100 }, function(adRes) {
-        if (adRes && !adRes.error && adRes.data && adRes.data.length > 0) {
-          adRes.data.forEach(ad => {
-            combinedItems.push({
-              id: ad.id || ad.account_id,
-              name: `Conta de Anúncios: ${ad.name || ad.id}`,
-              access_token: accessToken,
-              type: 'ad_account'
-            });
-          });
-        }
-
-        // Se encontrou páginas ou contas de anúncio, exibir no menu de seleção
-        if (combinedItems.length > 0) {
-          setFbPages(combinedItems);
-          setIsSelectingPage(true);
-        } else {
-          // Opção de fallback direto caso a Graph API do Facebook restrinja a listagem automática
-          setFbPages([
-            {
-              id: 'act_casa_fav_main',
-              name: 'Conta de Anúncios: C.A CASA FAV',
-              access_token: accessToken,
-              type: 'ad_account'
-            },
-            {
-              id: 'page_main_client',
-              name: 'Página / Conta Meta Ads Principal',
-              access_token: accessToken,
-              type: 'page'
-            }
-          ]);
-          setIsSelectingPage(true);
-        }
-      });
     });
   };
 
-  const handleSelectPage = async (page) => {
+  const handleSelectAdAccount = async (adAccount) => {
     if (!user) return;
-    setSelectedPage(page);
+    setExchangingToken(true);
     
     try {
-      if (window.FB && page.type === 'page') {
-        window.FB.api(
-          `/${page.id}/subscribed_apps`,
-          'POST',
-          { subscribed_fields: ['leadgen'], access_token: page.access_token },
-          function(response) {}
-        );
-      }
-    } catch (fbError) {
-      console.warn("Aviso ao inscrever webhooks:", fbError);
-    }
-
-    // Buscar formulários da página
-    if (window.FB && page.type === 'page') {
-      window.FB.api(`/${page.id}/leadgen_forms`, { access_token: page.access_token, fields: 'id,name' }, function(response) {
-        if (response && !response.error && response.data) {
-          setFbForms(response.data);
-        } else {
-          setFbForms([]);
+      // 1. Invocar a Edge Function meta-exchange-token para obter o User Access Token de longa duração (60 dias)
+      const { data: exchangeData, error: exchangeErr } = await supabase.functions.invoke('meta-exchange-token', {
+        body: {
+          short_lived_token: adAccount.access_token,
+          ad_account_id: adAccount.id
         }
-        setIsSelectingPage(false);
-        setIsSelectingForm(true);
       });
-    } else {
-      // Conexão direta de conta de anúncios sem passar pela sub-seleção de formulário
-      handleSelectForm(null, page);
-    }
-  };
 
-  const handleSelectForm = async (form, overridePage = null) => {
-    const pageToUse = overridePage || selectedPage;
-    if (!user || !pageToUse) return;
+      if (exchangeErr || !exchangeData || exchangeData.error) {
+        const errMsg = exchangeData?.error || exchangeErr?.message || 'Erro ao realizar a troca de token com o servidor do Facebook.';
+        alert(`Falha na conexão: ${errMsg}`);
+        setExchangingToken(false);
+        return;
+      }
 
-    const cleanName = pageToUse.name.replace(/^Página:\s*/i, '').replace(/^Conta de Anúncios:\s*/i, '').trim();
+      const longLivedToken = exchangeData.user_access_token;
+      const tokenExpiresAt = exchangeData.token_expires_at;
+      const currency = exchangeData.currency || adAccount.currency || 'BRL';
+      const timezone_name = exchangeData.timezone_name || adAccount.timezone_name || 'America/Sao_Paulo';
 
-    const integrationData = {
-      user_id: user.id,
-      page_id: pageToUse.id,
-      page_name: cleanName,
-      access_token: pageToUse.access_token || 'META_ACCESS_TOKEN',
-      form_id: form ? form.id : null,
-      form_name: form ? form.name : null
-    };
+      const cleanName = adAccount.name.replace(/^Conta de Anúncios:\s*/i, '').trim();
 
-    try {
-      // Remover duplicatas
-      let query = supabase.from('meta_integrations').delete().eq('user_id', user.id).eq('page_id', pageToUse.id);
-      if (form) { query = query.eq('form_id', form.id); } else { query = query.is('form_id', null); }
-      await query;
+      const integrationData = {
+        user_id: user.id,
+        page_id: adAccount.id,
+        page_name: cleanName,
+        ad_account_id: adAccount.id,
+        ad_account_name: cleanName,
+        user_access_token: longLivedToken,
+        access_token: longLivedToken,
+        token_expires_at: tokenExpiresAt,
+        currency,
+        timezone_name,
+        last_sync_status: 'active',
+        last_sync_error: null,
+        created_at: new Date().toISOString()
+      };
+
+      // Remover duplicatas anteriores do usuário para esta conta
+      await supabase.from('meta_integrations').delete().eq('user_id', user.id).eq('ad_account_id', adAccount.id);
 
       const { data, error } = await supabase
         .from('meta_integrations')
@@ -183,229 +142,274 @@ const Integrations = () => {
 
       if (error) throw error;
 
-      setActiveIntegrations(prev => [...prev, data]);
-      setIsSelectingForm(false);
+      setActiveIntegrations(prev => [...prev.filter(item => item.ad_account_id !== adAccount.id), data]);
       setIsSelectingPage(false);
-      setSelectedPage(null);
-      alert(`Conta "${cleanName}" conectada com sucesso!`);
+      alert(`Conta de Anúncios "${cleanName}" conectada com sucesso! Conexão válida até ${new Date(tokenExpiresAt).toLocaleDateString('pt-BR')}.`);
     } catch (error) {
       console.error("Erro ao salvar integração:", error);
-      alert("Erro ao salvar a integração no banco de dados.");
-    }
-  };
-
-  const handleManualConnect = async () => {
-    if (!user || !manualPageId.trim()) {
-      alert('Preencha o ID da Página ou Conta de Anúncios.');
-      return;
-    }
-
-    const pageId = manualPageId.trim();
-    const token = manualToken.trim() || 'TOKEN_MANUAL';
-    const formId = manualFormId.trim() || null;
-    const accountName = manualAccountName.trim() || `Conta ${pageId}`;
-
-    const integrationData = {
-      user_id: user.id,
-      page_id: pageId,
-      page_name: accountName,
-      access_token: token,
-      form_id: formId,
-      form_name: formId ? 'Formulário Conectado' : null
-    };
-
-    try {
-      let query = supabase.from('meta_integrations').delete().eq('user_id', user.id).eq('page_id', pageId);
-      if (formId) { query = query.eq('form_id', formId); } else { query = query.is('form_id', null); }
-      await query;
-
-      const { data, error } = await supabase
-        .from('meta_integrations')
-        .insert([integrationData])
-        .select()
-        .maybeSingle();
-
-      if (error) throw error;
-
-      setActiveIntegrations(prev => [...prev, data]);
-      setManualToken('');
-      setManualPageId('');
-      setManualFormId('');
-      setManualAccountName('');
-      alert(`Conta "${accountName}" conectada manualmente com sucesso!`);
-    } catch (error) {
-      console.error("Erro ao salvar integração manual:", error);
-      alert("Erro ao salvar a integração manual.");
+      alert(`Erro ao salvar a integração: ${error.message || 'Falha no banco de dados'}`);
+    } finally {
+      setExchangingToken(false);
     }
   };
 
   const handleDisconnect = async (id) => {
     if (!user) return;
-    if (window.confirm("Tem certeza que deseja desconectar esta integração?")) {
+    if (window.confirm("Tem certeza que deseja desconectar esta conta do Meta Ads?")) {
       try {
         await supabase
           .from('meta_integrations')
           .delete()
           .eq('id', id);
           
-        setActiveIntegrations(prev => prev.filter(i => i.id !== id));
+        setActiveIntegrations(prev => prev.filter(item => item.id !== id));
       } catch (error) {
         console.error("Erro ao desconectar:", error);
       }
     }
   };
 
+  const formatDate = (isoString) => {
+    if (!isoString) return 'Sem data definida';
+    return new Date(isoString).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  };
+
+  const getDaysUntilExpiration = (isoString) => {
+    if (!isoString) return 60;
+    const exp = new Date(isoString).getTime();
+    const now = new Date().getTime();
+    return Math.ceil((exp - now) / (1000 * 60 * 60 * 24));
+  };
+
   return (
     <div className={styles.pageContainer}>
-      <div className={styles.header}>
-        <h2 className={styles.title}>Integrações</h2>
+      <div className={styles.pageHeader}>
+        <div>
+          <h1 className={styles.pageTitle}>Integrações Oficiais (Meta Ads API v23.0)</h1>
+          <p className={styles.pageSubtitle}>
+            Conecte sua Conta de Anúncios do Meta Ads com User Access Token de longa duração de 60 dias.
+          </p>
+        </div>
       </div>
 
-      <div className={styles.grid} style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))' }}>
-        <div className={styles.card}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-            <div style={{ padding: '12px', backgroundColor: '#ebf4ff', borderRadius: '12px', color: '#1877F2', display: 'flex' }}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
-              </svg>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', marginTop: '20px' }}>
+        {/* Card do Meta Ads Manager */}
+        <div style={{
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '16px',
+          padding: '24px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          boxShadow: 'var(--shadow-sm)'
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#1877F2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '24px', fontWeight: 'bold' }}>
+                  f
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Meta Ads & Facebook</h3>
+                  <span style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <ShieldCheck size={14} /> Server-Side API v23.0
+                  </span>
+                </div>
+              </div>
             </div>
-            <div>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 600 }}>Meta Ads</h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Facebook & Instagram Leads</p>
-            </div>
+
+            <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '20px' }}>
+              Importação ao vivo de métricas de investimento, leads de formulário, CTR e CPL direto da Meta Graph API.
+            </p>
+
+            {noAccountsFound && (
+              <div style={{ padding: '12px 14px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '8px', marginBottom: '16px', color: '#ef4444', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <AlertTriangle size={18} />
+                <span>Nenhuma conta de anúncio encontrada — verifique as permissões de escopo no Business Manager.</span>
+              </div>
+            )}
           </div>
-          
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginBottom: '24px', lineHeight: '1.5' }}>
-            Conecte sua conta do Facebook ou Meta Ads para importar automaticamente estatísticas e leads gerados em suas campanhas para o CRM.
-          </p>
 
-          {loading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '12px' }}>
-              <Loader2 className={styles.spin} size={24} color="#1877F2" />
-            </div>
-          ) : (
-            <>
-              {activeIntegrations.length > 0 && (
-                <div style={{ marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>Integrações Ativas ({activeIntegrations.length})</h4>
-                  {activeIntegrations.map((int) => (
-                    <div key={int.id} style={{ display: 'flex', flexDirection: 'column', padding: '14px', backgroundColor: '#d1fae5', border: '1px solid #10b981', borderRadius: '8px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#047857', fontWeight: 600, marginBottom: '8px' }}>
-                        <CheckCircle size={18} /> Conectado
-                      </div>
-                      <div style={{ fontSize: '0.88rem', color: '#065f46', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span><strong>Conta / Página:</strong> {int.page_name}</span>
-                        <span><strong>Formulário / Campanha:</strong> {int.form_name || 'Todas as campanhas'}</span>
-                      </div>
-                      <button 
-                        onClick={() => handleDisconnect(int.id)}
-                        style={{ marginTop: '12px', width: '100%', padding: '8px', backgroundColor: 'transparent', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', fontSize: '0.85rem' }}
-                      >
-                        Desconectar
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {isSelectingPage ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
-                  <h4 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>Selecione a Conta ou Página:</h4>
-                  {fbPages.length > 0 ? (
-                    fbPages.map(page => (
-                      <button 
-                        key={page.id}
-                        onClick={() => handleSelectPage(page)}
-                        style={{ padding: '12px', textAlign: 'left', backgroundColor: 'var(--bg-app)', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                      >
-                        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{page.name}</span>
-                        <span style={{ fontSize: '0.8rem', color: '#1877F2', fontWeight: 700 }}>Conectar</span>
-                      </button>
-                    ))
-                  ) : (
-                    <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Nenhuma página encontrada na sua conta.</p>
-                  )}
-                  <button onClick={() => setIsSelectingPage(false)} style={{ padding: '10px', marginTop: '8px', backgroundColor: 'transparent', color: 'var(--text-secondary)', border: 'none', cursor: 'pointer' }}>
-                    Cancelar
-                  </button>
-                </div>
-              ) : isSelectingForm ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
-                  <h4 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>Selecione o Formulário / Campanha:</h4>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Escolha o formulário para <strong>{selectedPage?.name}</strong>.</p>
-                  
-                  <button 
-                    onClick={() => handleSelectForm(null)}
-                    style={{ padding: '12px', textAlign: 'left', backgroundColor: '#ebf4ff', border: '1px solid #1877F2', borderRadius: '8px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                  >
-                    <span style={{ fontWeight: 600, color: '#1877F2' }}>Todas as campanhas e formulários</span>
-                    <span style={{ fontSize: '0.8rem', color: '#1877F2', fontWeight: 700 }}>Conectar Tudo</span>
-                  </button>
-
-                  {fbForms.length > 0 && fbForms.map(form => (
-                    <button 
-                      key={form.id}
-                      onClick={() => handleSelectForm(form)}
-                      style={{ padding: '12px', textAlign: 'left', backgroundColor: 'var(--bg-app)', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                    >
-                      <span style={{ fontWeight: 500 }}>{form.name}</span>
-                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Selecionar</span>
-                    </button>
-                  ))}
-                  <button onClick={() => setIsSelectingForm(false)} style={{ padding: '10px', marginTop: '8px', backgroundColor: 'transparent', color: 'var(--text-secondary)', border: 'none', cursor: 'pointer' }}>
-                    Cancelar
-                  </button>
-                </div>
+          <div>
+            <button
+              onClick={handleFacebookConnect}
+              disabled={isLoginInProgress || exchangingToken}
+              style={{
+                width: '100%',
+                padding: '12px 20px',
+                background: 'linear-gradient(135deg, #1877F2, #0052cc)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '10px',
+                fontWeight: 700,
+                fontSize: '0.92rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 12px rgba(24, 119, 242, 0.3)'
+              }}
+            >
+              {isLoginInProgress || exchangingToken ? (
+                <>
+                  <Loader2 className={styles.spin} size={18} />
+                  {exchangingToken ? 'Gerando Token de Longa Duração...' : 'Conectando ao Facebook...'}
+                </>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
-                  <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>Conexão Automática</h4>
-                  <button 
-                    onClick={handleFacebookConnect}
-                    disabled={isLoginInProgress}
-                    style={{ width: '100%', padding: '12px', backgroundColor: '#1877F2', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer' }}
-                  >
-                    {isLoginInProgress ? <Loader2 className={styles.spin} size={18} /> : <LinkIcon size={18} />}
-                    {isLoginInProgress ? 'Conectando ao Facebook...' : 'Conectar Facebook / Meta Ads'}
-                  </button>
+                <>
+                  <LinkIcon size={18} />
+                  Conectar Conta Meta Ads
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
 
-                  <div style={{ borderTop: '1px dashed var(--border-color)', paddingTop: '16px' }}>
-                    <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px' }}>Conexão Rápida por ID da Conta</h4>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      <input
-                        type="text"
-                        placeholder="Nome da Conta (ex: Minha Loja)"
-                        value={manualAccountName}
-                        onChange={(e) => setManualAccountName(e.target.value)}
-                        style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-app)', color: 'var(--text-primary)', fontSize: '0.9rem' }}
-                      />
-                      <input
-                        type="text"
-                        placeholder="Page ID ou Ad Account ID (ex: act_123456)"
-                        value={manualPageId}
-                        onChange={(e) => setManualPageId(e.target.value)}
-                        style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-app)', color: 'var(--text-primary)', fontSize: '0.9rem' }}
-                      />
-                      <input
-                        type="text"
-                        placeholder="Page Access Token (Opcional)"
-                        value={manualToken}
-                        onChange={(e) => setManualToken(e.target.value)}
-                        style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-app)', color: 'var(--text-primary)', fontSize: '0.9rem' }}
-                      />
-                      <button
-                        onClick={handleManualConnect}
-                        disabled={!manualPageId}
-                        style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-app)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: '8px', fontWeight: 600, cursor: !manualPageId ? 'not-allowed' : 'pointer', opacity: !manualPageId ? 0.5 : 1 }}
-                      >
-                        Salvar Conta
-                      </button>
+      {/* Modal / Seleção de Conta de Anúncios Real */}
+      {isSelectingPage && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.6)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '20px'
+        }}>
+          <div style={{
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '16px',
+            padding: '24px',
+            maxWidth: '520px',
+            width: '100%',
+            boxShadow: 'var(--shadow-card)'
+          }}>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '8px', color: 'var(--text-primary)' }}>
+              Selecione a Conta de Anúncios
+            </h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '16px' }}>
+              Identificamos as seguintes contas de anúncios no seu perfil Meta. Escolha qual conta vincular ao CRM:
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '300px', overflowY: 'auto' }}>
+              {fbPages.map((adAcc) => (
+                <button
+                  key={adAcc.id}
+                  onClick={() => handleSelectAdAccount(adAcc)}
+                  disabled={exchangingToken}
+                  style={{
+                    padding: '12px 16px',
+                    borderRadius: '10px',
+                    background: 'var(--bg-app)',
+                    border: '1px solid var(--border-color)',
+                    color: 'var(--text-primary)',
+                    fontWeight: 600,
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}
+                >
+                  <div>
+                    <div>{adAcc.name}</div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                      ID: {adAcc.id} | Moeda: {adAcc.currency} | Fuso: {adAcc.timezone_name}
                     </div>
                   </div>
-                </div>
-              )}
-            </>
-          )}
+                  <ArrowRight size={18} color="#3b82f6" />
+                </button>
+              ))}
+            </div>
+
+            <div style={{ marginTop: '16px', textAlign: 'right' }}>
+              <button
+                onClick={() => setIsSelectingPage(false)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 600 }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
         </div>
+      )}
+
+      {/* Lista de Integrações Ativas */}
+      <div style={{ marginTop: '32px' }}>
+        <h2 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '16px', color: 'var(--text-primary)' }}>
+          Contas Conectadas ({activeIntegrations.length})
+        </h2>
+
+        {loading ? (
+          <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+            <Loader2 className={styles.spin} size={24} />
+          </div>
+        ) : activeIntegrations.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {activeIntegrations.map((item) => {
+              const daysLeft = getDaysUntilExpiration(item.token_expires_at);
+              const isWarning = daysLeft <= 10;
+              return (
+                <div key={item.id} style={{
+                  background: 'var(--bg-card)',
+                  border: isWarning ? '1px solid #ef4444' : '1px solid var(--border-color)',
+                  borderRadius: '12px',
+                  padding: '16px 20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '16px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{ padding: '10px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', borderRadius: '10px' }}>
+                      <CheckCircle size={22} />
+                    </div>
+                    <div>
+                      <h4 style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>
+                        {item.ad_account_name || item.page_name}
+                      </h4>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', gap: '12px', marginTop: '4px' }}>
+                        <span>ID Conta: {item.ad_account_id || item.page_id}</span>
+                        <span>Moeda: {item.currency || 'BRL'}</span>
+                        <span style={{ color: isWarning ? '#ef4444' : 'var(--text-muted)', fontWeight: isWarning ? 700 : 400, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <Calendar size={13} /> Token expira em {formatDate(item.token_expires_at)} ({daysLeft} dias restantes)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    {isWarning && (
+                      <button
+                        onClick={handleFacebookConnect}
+                        style={{ padding: '6px 12px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        Reconectar Agora
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleDisconnect(item.id)}
+                      style={{ padding: '8px', background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}
+                      title="Desconectar integração"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div style={{ padding: '30px', textAlign: 'center', background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
+            Nenhuma conta de anúncios do Meta conectada no momento.
+          </div>
+        )}
       </div>
     </div>
   );
