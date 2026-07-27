@@ -297,7 +297,7 @@
   gap: 8px;
 }
 
-/* Funnel Styling - Rótulos e Barras sem Cortes ou Sobreposições */
+/* Funnel Styling - Rótulos Estritamente DENTRO das Barras Coloridas */
 .funnelContainer {
   display: flex;
   flex-direction: column;
@@ -324,31 +324,23 @@
   position: relative;
   display: flex;
   align-items: center;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .funnelBarFill {
   height: 100%;
+  min-width: 90px;
   display: flex;
   align-items: center;
-  padding-left: 10px;
-  color: #ffffff;
+  justify-content: center;
+  padding: 0 12px;
+  color: #ffffff !important;
   font-weight: 700;
   font-size: 0.78rem;
   border-radius: 6px;
   transition: width 0.5s ease;
   white-space: nowrap;
-}
-
-.funnelRateTextOutside {
-  position: absolute;
-  left: 10px;
-  color: var(--text-primary);
-  font-weight: 700;
-  font-size: 0.78rem;
-  white-space: nowrap;
-  pointer-events: none;
-  z-index: 2;
+  box-sizing: border-box;
 }
 
 .funnelValue {

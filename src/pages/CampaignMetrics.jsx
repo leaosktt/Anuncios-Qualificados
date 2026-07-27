@@ -1,4 +1,4 @@
-// Vercel deploy update: v2.6.0 - Period-Accurate Meta Ads Manager Synchronization & Funnel Text Fixes
+// Vercel deploy update: v2.7.0 - Funnel Text Inside Colored Bars & Zero Metrics for Inactive Days
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   TrendingUp, 
@@ -97,15 +97,15 @@ const CASA_FAV_PERIOD_DATA = {
       campaign_name: '02/07 Sob Medida (Formulário)',
       platform: 'Meta Ads',
       status: 'Ativa',
-      spend: 18.50,
-      leads_count: 1,
-      cpl: 18.50,
-      impressions: 430,
-      reach: 310,
-      clicks: 24,
-      ctr: 5.58,
-      cpc: 0.77,
-      cpm: 43.02
+      spend: 0.00,
+      leads_count: 0,
+      cpl: 0.00,
+      impressions: 0,
+      reach: 0,
+      clicks: 0,
+      ctr: 0.00,
+      cpc: 0.00,
+      cpm: 0.00
     },
     {
       id: 'meta_camp_02',
@@ -119,9 +119,9 @@ const CASA_FAV_PERIOD_DATA = {
       impressions: 0,
       reach: 0,
       clicks: 0,
-      ctr: 0,
-      cpc: 0,
-      cpm: 0
+      ctr: 0.00,
+      cpc: 0.00,
+      cpm: 0.00
     }
   ],
   'yesterday': [
@@ -131,15 +131,15 @@ const CASA_FAV_PERIOD_DATA = {
       campaign_name: '02/07 Sob Medida (Formulário)',
       platform: 'Meta Ads',
       status: 'Ativa',
-      spend: 21.40,
-      leads_count: 1,
-      cpl: 21.40,
-      impressions: 490,
-      reach: 350,
-      clicks: 27,
-      ctr: 5.51,
-      cpc: 0.79,
-      cpm: 43.67
+      spend: 0.00,
+      leads_count: 0,
+      cpl: 0.00,
+      impressions: 0,
+      reach: 0,
+      clicks: 0,
+      ctr: 0.00,
+      cpc: 0.00,
+      cpm: 0.00
     },
     {
       id: 'meta_camp_02',
@@ -153,9 +153,9 @@ const CASA_FAV_PERIOD_DATA = {
       impressions: 0,
       reach: 0,
       clicks: 0,
-      ctr: 0,
-      cpc: 0,
-      cpm: 0
+      ctr: 0.00,
+      cpc: 0.00,
+      cpm: 0.00
     }
   ]
 };
@@ -350,7 +350,7 @@ const CampaignMetrics = () => {
                   leads_count: leads,
                   cpl: cpl,
                   impressions: impressions,
-                  reach: parseInt(ins.reach || Math.round(impressions * 0.65)),
+                  reach: parseInt(ins.reach || 0),
                   clicks: clicks
                 });
               });
@@ -398,7 +398,7 @@ const CampaignMetrics = () => {
                 leads_count: leads,
                 cpl: leads > 0 ? (spend / leads) : 0,
                 impressions: impressions,
-                reach: parseInt(ins.reach || Math.round(impressions * 0.65)),
+                reach: parseInt(ins.reach || 0),
                 clicks: clicks
               });
             });
@@ -458,7 +458,7 @@ const CampaignMetrics = () => {
   const totalImpressions = filteredCampaigns.reduce((acc, c) => acc + Number(c.impressions || 0), 0);
   const totalClicks = filteredCampaigns.reduce((acc, c) => acc + Number(c.clicks || 0), 0);
 
-  // CPL médio ponderado
+  // Se nada rodou no período selecionado, ZERAR absolutamente todas as métricas sem preencher estimativas
   const avgCpl = totalLeads > 0 ? (totalSpend / totalLeads) : 0;
   const cpc = totalClicks > 0 ? (totalSpend / totalClicks) : 0;
   const cpm = totalImpressions > 0 ? ((totalSpend / totalImpressions) * 1000) : 0;
@@ -472,11 +472,11 @@ const CampaignMetrics = () => {
     return new Intl.NumberFormat('pt-BR').format(val || 0);
   };
 
-  // Funil Meta Ads
+  // Funil Meta Ads - Rótulos Estritamente DENTRO das Barras Coloridas
   const funnelSteps = [
     { label: 'Impressões dos Anúncios', value: totalImpressions, rate: '100%', pct: 100, color: 'linear-gradient(90deg, #1d4ed8, #3b82f6)' },
-    { label: 'Cliques nos Anúncios', value: totalClicks, rate: `${ctr.toFixed(2)}% CTR`, pct: Math.min(ctr * 5, 80), color: 'linear-gradient(90deg, #2563eb, #60a5fa)' },
-    { label: 'Leads de Formulário Meta', value: totalLeads, rate: totalClicks > 0 ? `${((totalLeads / totalClicks) * 100).toFixed(1)}% Conv.` : '0% Conv.', pct: Math.min(((totalLeads / Math.max(totalClicks, 1)) * 100) * 8, 60), color: 'linear-gradient(90deg, #059669, #10b981)' },
+    { label: 'Cliques nos Anúncios', value: totalClicks, rate: `${ctr.toFixed(2)}% CTR`, pct: Math.max(Math.min(ctr * 5, 80), 28), color: 'linear-gradient(90deg, #2563eb, #60a5fa)' },
+    { label: 'Leads de Formulário Meta', value: totalLeads, rate: totalClicks > 0 ? `${((totalLeads / totalClicks) * 100).toFixed(1)}% Conv.` : '0.0% Conv.', pct: Math.max(Math.min(((totalLeads / Math.max(totalClicks, 1)) * 100) * 8, 60), 28), color: 'linear-gradient(90deg, #059669, #10b981)' },
   ];
 
   // Leads por Dia da Semana
@@ -674,7 +674,7 @@ const CampaignMetrics = () => {
 
       {/* Funnel + Evolution Charts */}
       <div className={styles.contentGrid}>
-        {/* Funil Meta Ads */}
+        {/* Funil Meta Ads - Rótulos Estritamente DENTRO das Barras Coloridas */}
         <div className={styles.cardSection}>
           <div className={styles.cardHeader}>
             <h3 className={styles.cardTitle}>
@@ -696,13 +696,8 @@ const CampaignMetrics = () => {
                       background: step.color
                     }}
                   >
-                    {step.pct >= 40 && step.rate}
+                    {step.rate}
                   </div>
-                  {step.pct < 40 && (
-                    <span className={styles.funnelRateTextOutside} style={{ left: `calc(${step.pct}% + 8px)` }}>
-                      {step.rate}
-                    </span>
-                  )}
                 </div>
                 <span className={styles.funnelValue}>{formatCompactNum(step.value)}</span>
               </div>
