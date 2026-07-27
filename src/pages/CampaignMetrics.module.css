@@ -35,22 +35,36 @@
   color: var(--text-muted);
 }
 
+/* Barra de Filtros Totalmente Encaixada Sem Quebra ou Corte de Texto */
 .filterBar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
+  background: var(--bg-card);
+  padding: 12px 16px;
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  width: 100%;
 }
 
 .filterGroup {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: var(--bg-card);
-  padding: 6px 12px;
+  gap: 10px;
+  background: var(--bg-app);
+  padding: 8px 14px;
   border-radius: var(--border-radius-md);
   border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-sm);
+  max-width: 100%;
+}
+
+.filterGroupExpand {
+  flex: 1 1 300px;
+  min-width: 200px;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .filterLabel {
@@ -70,6 +84,10 @@
   font-weight: 600;
   outline: none;
   cursor: pointer;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .btnPrimary {
@@ -91,25 +109,7 @@
   box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
 }
 
-.btnSecondary {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--bg-card);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
-  padding: 8px 14px;
-  border-radius: var(--border-radius-md);
-  font-weight: 600;
-  font-size: 0.85rem;
-  transition: background 0.2s;
-}
-
-.btnSecondary:hover {
-  background: var(--bg-board);
-}
-
-/* Financial Highlights Hero Grid - Estritamente 4 colunas em 100% Zoom */
+/* Financial Highlights Hero Grid - 4 colunas em 100% Zoom */
 .heroGrid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -132,7 +132,7 @@
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-lg);
-  padding: 16px 18px;
+  padding: 16px 16px;
   box-shadow: var(--shadow-card);
   position: relative;
   overflow: hidden;
@@ -150,16 +150,19 @@
 .statCardHeader {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   margin-bottom: 8px;
+  gap: 8px;
 }
 
 .statTitle {
-  font-size: 0.76rem;
+  font-size: 0.72rem;
   font-weight: 700;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
+  line-height: 1.15;
+  white-space: nowrap;
 }
 
 .statIconWrapper {
@@ -171,10 +174,11 @@
   justify-content: center;
   background: rgba(59, 130, 246, 0.1);
   color: #3b82f6;
+  flex-shrink: 0;
 }
 
 .statValue {
-  font-size: 1.5rem;
+  font-size: 1.45rem;
   font-weight: 800;
   color: var(--text-primary);
   letter-spacing: -0.02em;
@@ -196,7 +200,7 @@
   color: #10b981;
 }
 
-/* Performance Pills Bar - Estritamente 6 colunas perfeitamente encaixadas */
+/* Performance Pills Bar - 6 colunas proporcionais */
 .pillsBar {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
@@ -301,7 +305,7 @@
 
 .funnelStep {
   display: grid;
-  grid-template-columns: 180px 1fr 100px;
+  grid-template-columns: 170px 1fr 90px;
   align-items: center;
   gap: 12px;
 }
@@ -316,24 +320,37 @@
   height: 28px;
   background: var(--bg-app);
   border-radius: 6px;
-  overflow: hidden;
   position: relative;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
 }
 
 .funnelBarFill {
   height: 100%;
   display: flex;
   align-items: center;
-  padding-left: 12px;
+  padding-left: 10px;
   color: #ffffff;
   font-weight: 700;
   font-size: 0.78rem;
   border-radius: 6px;
   transition: width 0.5s ease;
+  white-space: nowrap;
+}
+
+.funnelRateTextOutside {
+  position: absolute;
+  left: 12px;
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .funnelValue {
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   font-weight: 700;
   color: var(--text-primary);
   text-align: right;
