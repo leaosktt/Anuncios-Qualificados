@@ -1,11 +1,11 @@
 .container {
-  padding: 24px;
+  padding: 16px 20px;
   max-width: 1600px;
   margin: 0 auto;
   min-height: calc(100vh - 70px);
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 18px;
 }
 
 /* Header & Filters */
@@ -14,7 +14,7 @@
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
 }
 
 .titleArea {
@@ -24,14 +24,14 @@
 }
 
 .title {
-  font-size: 1.6rem;
+  font-size: 1.45rem;
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.02em;
 }
 
 .subtitle {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   color: var(--text-muted);
 }
 
@@ -54,18 +54,19 @@
 }
 
 .filterLabel {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #1877F2;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
 }
 
 .selectInput {
   background: transparent;
   border: none;
   color: var(--text-primary);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 600;
   outline: none;
   cursor: pointer;
@@ -77,10 +78,10 @@
   gap: 8px;
   background: linear-gradient(135deg, #3b82f6, #1d4ed8);
   color: #ffffff;
-  padding: 10px 18px;
+  padding: 8px 16px;
   border-radius: var(--border-radius-md);
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   transition: transform 0.2s, box-shadow 0.2s;
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
@@ -97,10 +98,10 @@
   background: var(--bg-card);
   color: var(--text-primary);
   border: 1px solid var(--border-color);
-  padding: 10px 16px;
+  padding: 8px 14px;
   border-radius: var(--border-radius-md);
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   transition: background 0.2s;
 }
 
@@ -108,18 +109,30 @@
   background: var(--bg-board);
 }
 
-/* Financial Highlights Hero Card */
+/* Financial Highlights Hero Grid - Estritamente 4 colunas em 100% Zoom */
 .heroGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 1024px) {
+  .heroGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .heroGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .statCard {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-lg);
-  padding: 22px;
+  padding: 16px 18px;
   box-shadow: var(--shadow-card);
   position: relative;
   overflow: hidden;
@@ -138,21 +151,21 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .statTitle {
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.76rem;
+  font-weight: 700;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
 .statIconWrapper {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -161,14 +174,13 @@
 }
 
 .statValue {
-  font-size: 1.85rem;
+  font-size: 1.5rem;
   font-weight: 800;
   color: var(--text-primary);
   letter-spacing: -0.02em;
   line-height: 1.2;
 }
 
-/* Specially styled Profit card matching the photo */
 .profitCard {
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, var(--bg-card) 100%);
   border: 1px solid rgba(16, 185, 129, 0.3);
@@ -184,37 +196,49 @@
   color: #10b981;
 }
 
-/* Secondary Metrics Pills Bar */
+/* Performance Pills Bar - Estritamente 6 colunas perfeitamente encaixadas */
 .pillsBar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
   background: var(--bg-card);
-  padding: 16px;
+  padding: 12px 14px;
   border-radius: var(--border-radius-lg);
   border: 1px solid var(--border-color);
 }
 
+@media (max-width: 1100px) {
+  .pillsBar {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .pillsBar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 .pillItem {
-  flex: 1;
-  min-width: 130px;
-  padding: 10px 14px;
-  background: var(--bg-app);
-  border-radius: var(--border-radius-md);
-  border: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   gap: 4px;
+  padding: 8px 12px;
+  border-radius: var(--border-radius-md);
+  background: var(--bg-app);
+  border: 1px solid var(--border-color);
 }
 
 .pillLabel {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 700;
   color: var(--text-muted);
-  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .pillValue {
-  font-size: 1.15rem;
+  font-size: 1rem;
   font-weight: 700;
   color: var(--text-primary);
 }
@@ -223,22 +247,22 @@
   color: #10b981;
 }
 
-.blueTag {
-  color: #3b82f6;
-}
-
 .purpleTag {
   color: #8b5cf6;
 }
 
-/* Main Dashboard Content Layout */
-.contentGrid {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 20px;
+.blueTag {
+  color: #3b82f6;
 }
 
-@media (max-width: 1200px) {
+/* Content Layout Grid */
+.contentGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+@media (max-width: 1024px) {
   .contentGrid {
     grid-template-columns: 1fr;
   }
@@ -248,21 +272,19 @@
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-lg);
-  padding: 24px;
+  padding: 18px;
   box-shadow: var(--shadow-card);
-  display: flex;
-  flex-direction: column;
 }
 
 .cardHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .cardTitle {
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 700;
   color: var(--text-primary);
   display: flex;
@@ -270,165 +292,102 @@
   gap: 8px;
 }
 
-/* Visual Conversion Funnel Styling */
+/* Funnel Styling */
 .funnelContainer {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  margin-top: 10px;
+  gap: 12px;
 }
 
 .funnelStep {
-  display: flex;
+  display: grid;
+  grid-template-columns: 180px 1fr 100px;
   align-items: center;
-  gap: 16px;
-  position: relative;
+  gap: 12px;
 }
 
 .funnelLabel {
-  width: 120px;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 600;
   color: var(--text-secondary);
 }
 
 .funnelBarTrack {
-  flex: 1;
-  height: 36px;
+  height: 28px;
   background: var(--bg-app);
-  border-radius: 8px;
+  border-radius: 6px;
   overflow: hidden;
   position: relative;
-  border: 1px solid var(--border-color);
 }
 
 .funnelBarFill {
   height: 100%;
-  border-radius: 6px;
   display: flex;
   align-items: center;
   padding-left: 12px;
   color: #ffffff;
   font-weight: 700;
-  font-size: 0.85rem;
-  transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-  background: linear-gradient(90deg, #2563eb, #3b82f6);
+  font-size: 0.78rem;
+  border-radius: 6px;
+  transition: width 0.5s ease;
 }
 
 .funnelValue {
-  width: 90px;
-  text-align: right;
   font-size: 0.95rem;
   font-weight: 700;
   color: var(--text-primary);
+  text-align: right;
 }
 
-.funnelConversionBadge {
-  position: absolute;
-  right: -5px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: #10b981;
-  color: #ffffff;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  z-index: 2;
-  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.4);
-}
-
-/* Donut Chart Container with Center Badge */
-.donutWrapper {
-  position: relative;
-  width: 100%;
-  height: 280px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.donutCenterBadge {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
-  pointer-events: none;
-}
-
-.donutCenterValue {
-  font-size: 1.6rem;
-  font-weight: 800;
-  color: var(--text-primary);
-  line-height: 1;
-}
-
-.donutCenterLabel {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  font-weight: 600;
-  text-transform: uppercase;
-  margin-top: 4px;
-}
-
-/* Campaign Table Styling */
+/* Table Styling */
 .tableWrapper {
-  width: 100%;
   overflow-x: auto;
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-md);
 }
 
 .campaignTable {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 .campaignTable th {
+  padding: 10px 12px;
   background: var(--bg-app);
-  color: var(--text-secondary);
-  font-weight: 600;
-  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 14px 16px;
+  font-size: 0.72rem;
   border-bottom: 1px solid var(--border-color);
 }
 
 .campaignTable td {
-  padding: 16px;
+  padding: 12px;
   border-bottom: 1px solid var(--border-color);
-  color: var(--text-primary);
+  color: var(--text-secondary);
 }
 
 .campaignTable tr:last-child td {
   border-bottom: none;
 }
 
-.campaignTable tr:hover td {
-  background: rgba(59, 130, 246, 0.03);
-}
-
 .statusBadge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 0.78rem;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 
 .statusActive {
-  background: rgba(16, 185, 129, 0.15);
+  background: rgba(16, 185, 129, 0.12);
   color: #10b981;
 }
 
 .statusPaused {
-  background: rgba(245, 158, 11, 0.15);
+  background: rgba(245, 158, 11, 0.12);
   color: #f59e0b;
 }
 
@@ -437,74 +396,6 @@
   height: 6px;
   border-radius: 50%;
   background: currentColor;
-}
-
-/* Modal styling */
-.modalOverlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(15, 23, 42, 0.7);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 20px;
-}
-
-.modalContent {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-lg);
-  width: 100%;
-  max-width: 540px;
-  padding: 24px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.modalHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.modalTitle {
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.formGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.formField {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.formField label {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.formInput {
-  padding: 10px 12px;
-  border-radius: var(--border-radius-sm);
-  border: 1px solid var(--border-color);
-  background: var(--bg-app);
-  color: var(--text-primary);
-  font-size: 0.9rem;
 }
 
 .spin {
