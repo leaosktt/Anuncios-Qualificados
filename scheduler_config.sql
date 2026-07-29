@@ -16,7 +16,10 @@ SELECT cron.schedule(
     $$
     SELECT net.http_post(
         url:='https://rkmyzfpvgutzsjeeqgrq.supabase.co/functions/v1/meta-token-refresh',
-        headers:='{"Content-Type": "application/json"}'::jsonb,
+        headers:=jsonb_build_object(
+            'Content-Type', 'application/json',
+            'Authorization', 'Bearer ' || (SELECT secret FROM vault.secrets WHERE name = 'SERVICE_ROLE_KEY')
+        ),
         body:='{}'::jsonb
     );
     $$
@@ -25,7 +28,10 @@ SELECT cron.schedule(
 -- 4. Comando para testar e forçar a execução manual imediata do Cron:
 -- SELECT net.http_post(
 --     url:='https://rkmyzfpvgutzsjeeqgrq.supabase.co/functions/v1/meta-token-refresh',
---     headers:='{"Content-Type": "application/json"}'::jsonb,
+--     headers:=jsonb_build_object(
+--         'Content-Type', 'application/json',
+--         'Authorization', 'Bearer ' || (SELECT secret FROM vault.secrets WHERE name = 'SERVICE_ROLE_KEY')
+--     ),
 --     body:='{}'::jsonb
 -- );
 

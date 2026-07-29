@@ -49,7 +49,7 @@ const Integrations = () => {
     setNoAccountsFound(false);
     
     // Escopos oficiais da Meta API v23.0 (sem ads_management)
-    const scopes = 'public_profile,email,pages_show_list,leads_retrieval,ads_read,business_management';
+    const scopes = 'public_profile,ads_read,business_management,pages_show_list,leads_retrieval';
     
     window.FB.login((response) => {
       setIsLoginInProgress(false);
